@@ -1,8 +1,11 @@
 'use client'
 
 import Link from 'next/link'
+import { useUser } from '@clerk/nextjs'
+import { isAdmin } from '@/lib/admin'
 
 export default function Navigation() {
+  const { user } = useUser()
   return (
     <nav className="w-full bg-white border-b border-gray-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -33,8 +36,16 @@ export default function Navigation() {
             </Link>
           </div>
 
-          {/* CTA Button */}
-          <div className="flex items-center">
+          {/* CTA Buttons */}
+          <div className="flex items-center gap-3">
+            {isAdmin(user) && (
+              <Link 
+                href="/admin"
+                className="bg-gray-700 text-white px-4 py-2 rounded-lg font-medium hover:bg-gray-900 transition-colors"
+              >
+                Admin
+              </Link>
+            )}
             <Link 
               href="/sign-in"
               className="bg-black text-white px-4 py-2 rounded-lg font-medium hover:bg-gray-800 transition-colors"

@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "highlight.js/styles/github.css";
+@import "@uiw/react-md-editor/markdown-editor.css";
 
 :root {
   --background: #ffffff;
