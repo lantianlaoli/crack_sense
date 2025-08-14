@@ -42,7 +42,7 @@ export default function Hero() {
           <div className="lg:pl-8">
             <div className="relative">
               <Image
-                src="/images/hero_illustration.png"
+                src="/illustrations/hero.png"
                 alt="House with smartphone showing crack analysis app"
                 width={600}
                 height={400}

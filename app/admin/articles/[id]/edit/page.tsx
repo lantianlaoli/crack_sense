@@ -24,8 +24,9 @@ async function getArticle(id: string): Promise<Article | null> {
   }
 }
 
-export default async function EditArticlePage({ params }: { params: { id: string } }) {
-  const article = await getArticle(params.id)
+export default async function EditArticlePage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const article = await getArticle(id)
 
   if (!article) {
     notFound()

@@ -3,5 +3,9 @@ export default function AnalyzeLayout({
 }: {
   children: React.ReactNode
 }) {
-  return children
+  return (
+    <div className="w-full">
+      {children}
+    </div>
+  )
 }

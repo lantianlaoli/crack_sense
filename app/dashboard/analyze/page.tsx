@@ -3,10 +3,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
-import { ArrowLeft, Upload, X, Camera, Plus } from 'lucide-react'
-import Link from 'next/link'
+import { Upload, X, Camera, Plus } from 'lucide-react'
 import Image from 'next/image'
-import Navigation from '@/components/Navigation'
 
 export default function AnalyzePage() {
   const { user } = useUser()
@@ -123,78 +121,59 @@ export default function AnalyzePage() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
-      <Navigation />
-      
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-8 py-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center space-x-4">
-            <Link 
-              href="/dashboard"
-              className="p-2 rounded-xl hover:bg-gray-100 transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5 text-gray-600" />
-            </Link>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">New Analysis</h1>
-            </div>
-          </div>
-        </div>
-      </div>
-
+    <div className="bg-white">
       {/* Main Content - Left Right Layout */}
       <div className="w-full">
-        <div className="grid lg:grid-cols-5 min-h-[calc(100vh-140px)]">
+        <div className="grid lg:grid-cols-2 min-h-[calc(100vh-80px)]">
           {/* Left Side - Content */}
-          <div className="lg:col-span-2 bg-white px-12 py-16 flex flex-col justify-between">
-            <div className="space-y-8">
-              <div>
-                <h2 className="text-5xl font-bold text-gray-900 mb-8 leading-tight">
-                  We'd Love to Help You Analyze Your Cracks
-                </h2>
-                <p className="text-xl text-gray-600 mb-10 leading-relaxed">
-                  Upload photos of wall cracks through the form, and our AI will provide detailed analysis and recommendations as soon as possible.
-                </p>
-                <p className="text-lg text-gray-600">
-                  Prefer direct contact? Reach us at{' '}
-                  <a 
-                    href="mailto:lantianlaoli@gmail.com" 
-                    className="text-blue-600 hover:text-blue-800 underline font-medium"
-                  >
-                    lantianlaoli@gmail.com
-                  </a>
-                </p>
-              </div>
+          <div className="bg-white px-16 py-20 flex flex-col justify-center">
+            <div>
+              <h2 className="text-6xl font-bold text-black mb-6 leading-tight">
+                We'd Love to<br />Hear From You
+              </h2>
+              <p className="text-xl text-gray-600 mb-8 leading-relaxed">
+                Reach out to us through the form below, and we'll get back to you as soon as possible.
+              </p>
+              <p className="text-lg text-gray-600">
+                Prefer email? Reach us directly at{' '}
+                <a 
+                  href="mailto:lantianlaoli@gmail.com" 
+                  className="text-blue-500 hover:text-blue-700 underline"
+                >
+                  lantianlaoli@gmail.com
+                </a>
+              </p>
             </div>
 
             {/* Illustration */}
-            <div className="mt-16">
+            <div className="mt-12">
               <Image
                 src="/illustrations/analysis.png"
                 alt="Analysis illustration"
                 width={400}
                 height={300}
-                className="w-full max-w-sm h-auto"
+                className="w-full max-w-md h-auto"
               />
             </div>
           </div>
 
           {/* Right Side - Form */}
-          <div className="lg:col-span-3 bg-gray-50 px-16 py-16">
-            <div className="max-w-2xl mx-auto space-y-8">
-              {/* Upload Section */}
-              <div className="bg-white border border-gray-200 rounded-3xl p-10 shadow-sm">
-                <h3 className="text-2xl font-semibold text-gray-900 mb-8">Upload Images</h3>
+          <div className="bg-white px-16 py-20 flex items-center justify-center">
+            <div className="w-full max-w-2xl">
+              {/* Form Container with Gray Background */}
+              <div className="bg-gray-50 rounded-3xl p-12 space-y-10">
+                {/* Upload Section */}
+                <div>
+                  <h3 className="text-2xl font-semibold text-gray-900 mb-6">Upload Images</h3>
                 
-                {/* File Upload Area */}
-                {files.length === 0 ? (
-                  <div
-                    className={`border-2 border-dashed rounded-2xl p-10 text-center transition-colors ${
-                      dragActive 
-                        ? 'border-blue-400 bg-blue-50' 
-                        : 'border-gray-300 hover:border-gray-400'
-                    }`}
+                  {/* File Upload Area */}
+                  {files.length === 0 ? (
+                    <div
+                      className={`border-2 border-dashed rounded-2xl p-10 text-center transition-colors bg-white ${
+                        dragActive 
+                          ? 'border-blue-400 bg-blue-50' 
+                          : 'border-gray-300 hover:border-gray-400'
+                      }`}
                     onDragEnter={handleDrag}
                     onDragLeave={handleDrag}
                     onDragOver={handleDrag}
@@ -267,35 +246,30 @@ export default function AnalyzePage() {
                       )}
                     </div>
                   </div>
-                )}
-              </div>
+                  )}
+                </div>
 
-              {/* Description Section */}
-              <div className="bg-white border border-gray-200 rounded-3xl p-10 shadow-sm">
-                <h3 className="text-2xl font-semibold text-black mb-6">Description (Optional)</h3>
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Describe the location of the cracks, when you first noticed them, or any other relevant details..."
-                  className="w-full h-36 p-6 border border-gray-300 rounded-2xl resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder:text-gray-500 text-lg"
-                />
-              </div>
+                {/* Description Section */}
+                <div>
+                  <h3 className="text-2xl font-semibold text-gray-900 mb-6">Description (Optional)</h3>
+                  <textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Describe the location of the cracks, when you first noticed them, or any other relevant details..."
+                    className="w-full h-32 p-4 bg-white border border-gray-200 rounded-xl resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder:text-gray-500"
+                  />
+                </div>
 
-              {/* Action Buttons */}
-              <div className="flex justify-end space-x-6 pt-4">
-                <Link
-                  href="/dashboard"
-                  className="px-8 py-4 border border-gray-300 text-gray-700 rounded-2xl font-medium hover:bg-gray-50 transition-colors text-lg"
-                >
-                  Cancel
-                </Link>
-                <button
-                  onClick={handleAnalyze}
-                  disabled={files.length === 0 || isAnalyzing}
-                  className="px-10 py-4 bg-blue-600 text-white rounded-2xl font-medium hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed text-lg"
-                >
-                  {isAnalyzing ? 'Analyzing...' : 'Start Analysis'}
-                </button>
+                {/* Action Buttons */}
+                <div className="flex justify-end space-x-4 pt-2">
+                  <button
+                    onClick={handleAnalyze}
+                    disabled={files.length === 0 || isAnalyzing}
+                    className="px-8 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  >
+                    {isAnalyzing ? 'Analyzing...' : 'Start Analysis'}
+                  </button>
+                </div>
               </div>
             </div>
           </div>

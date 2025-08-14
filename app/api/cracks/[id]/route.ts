@@ -4,9 +4,10 @@ import { supabase } from '@/lib/supabase'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const { userId } = await auth()
     
     if (!userId) {
@@ -16,7 +17,7 @@ export async function GET(
     const { data: crack, error } = await supabase
       .from('cracks')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('user_id', userId)
       .single()
 
@@ -37,9 +38,10 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const { userId } = await auth()
     
     if (!userId) {
@@ -63,7 +65,7 @@ export async function PUT(
         expert_notes,
         risk_level,
       })
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('user_id', userId)
       .select()
       .single()
@@ -85,9 +87,10 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const { userId } = await auth()
     
     if (!userId) {
@@ -97,7 +100,7 @@ export async function DELETE(
     const { error } = await supabase
       .from('cracks')
       .delete()
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('user_id', userId)
 
     if (error) {

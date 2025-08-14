@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, AlertTriangle, CheckCircle, Info, Download, Share, Loader2 } from 'lucide-react'
 
-export default function AnalysisResultPage() {
+function AnalysisResultContent() {
   const [activeTab, setActiveTab] = useState('overview')
   const [analysisData, setAnalysisData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -328,5 +328,21 @@ export default function AnalysisResultPage() {
         </Link>
       </div>
     </div>
+  )
+}
+
+export default function AnalysisResultPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-96">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Loading Analysis Results</h3>
+          <p className="text-gray-600">Please wait while we fetch your crack analysis data...</p>
+        </div>
+      </div>
+    }>
+      <AnalysisResultContent />
+    </Suspense>
   )
 }

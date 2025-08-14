@@ -5,13 +5,14 @@ import { isAdmin } from '@/lib/admin'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const { data, error } = await supabase
       .from('articles')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', id)
       .single()
 
     if (error) {
@@ -31,9 +32,10 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const user = await currentUser()
     
     if (!isAdmin(user)) {
@@ -52,7 +54,7 @@ export async function PUT(
       .from('articles')
       .select('id')
       .eq('slug', slug)
-      .neq('id', params.id)
+      .neq('id', id)
       .single()
 
     if (existingArticle) {
@@ -62,7 +64,7 @@ export async function PUT(
     const { data, error } = await supabase
       .from('articles')
       .update({ title, slug, content })
-      .eq('id', params.id)
+      .eq('id', id)
       .select()
       .single()
 
@@ -80,9 +82,10 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const user = await currentUser()
     
     if (!isAdmin(user)) {
@@ -92,7 +95,7 @@ export async function DELETE(
     const { error } = await supabase
       .from('articles')
       .delete()
-      .eq('id', params.id)
+      .eq('id', id)
 
     if (error) {
       console.error('Error deleting article:', error)

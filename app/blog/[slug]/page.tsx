@@ -31,8 +31,9 @@ async function getArticleBySlug(slug: string): Promise<Article | null> {
   }
 }
 
-export async function generateMetadata({ params }: { params: { slug: string } }) {
-  const article = await getArticleBySlug(params.slug)
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params
+  const article = await getArticleBySlug(slug)
 
   if (!article) {
     return {
@@ -53,8 +54,9 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   }
 }
 
-export default async function BlogPostPage({ params }: { params: { slug: string } }) {
-  const article = await getArticleBySlug(params.slug)
+export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params
+  const article = await getArticleBySlug(slug)
 
   if (!article) {
     notFound()
