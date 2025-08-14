@@ -3,8 +3,9 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
-import { ArrowLeft, Upload, X, Camera } from 'lucide-react'
+import { ArrowLeft, Upload, X, Camera, Plus } from 'lucide-react'
 import Link from 'next/link'
+import Image from 'next/image'
 
 export default function AnalyzePage() {
   const { user } = useUser()
@@ -121,109 +122,175 @@ export default function AnalyzePage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="flex items-center space-x-4">
-        <Link 
-          href="/dashboard"
-          className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-        >
-          <ArrowLeft className="w-5 h-5 text-gray-600" />
-        </Link>
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">New Analysis</h1>
-          <p className="text-gray-600">Upload photos of wall cracks for AI analysis</p>
+      <div className="bg-white border-b border-gray-200 px-8 py-6">
+        <div className="flex items-center space-x-4">
+          <Link 
+            href="/dashboard"
+            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5 text-gray-600" />
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">New Analysis</h1>
+          </div>
         </div>
       </div>
 
-      {/* Upload Section */}
-      <div className="bg-white border border-gray-200 rounded-xl p-8">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Upload Images</h2>
-        
-        {/* File Upload Area */}
-        <div
-          className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${
-            dragActive 
-              ? 'border-blue-400 bg-blue-50' 
-              : 'border-gray-300 hover:border-gray-400'
-          }`}
-          onDragEnter={handleDrag}
-          onDragLeave={handleDrag}
-          onDragOver={handleDrag}
-          onDrop={handleDrop}
-        >
-          <Camera className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            Drop images here or click to upload
-          </h3>
-          <p className="text-gray-600 mb-4">
-            Support JPG, PNG files. Maximum 3 images.
-          </p>
-          <label className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors cursor-pointer">
-            <Upload className="w-4 h-4" />
-            Choose Files
-            <input
-              type="file"
-              multiple
-              accept="image/*"
-              onChange={handleFileSelect}
-              className="hidden"
-            />
-          </label>
-        </div>
+      {/* Main Content - Left Right Layout */}
+      <div className="max-w-7xl mx-auto px-8 py-12">
+        <div className="grid lg:grid-cols-2 gap-16 items-start">
+          {/* Left Side - Content */}
+          <div className="space-y-8">
+            <div>
+              <h2 className="text-4xl font-bold text-gray-900 mb-6">
+                We'd Love to Help You Analyze Your Cracks
+              </h2>
+              <p className="text-lg text-gray-600 mb-8">
+                Upload photos of wall cracks through the form, and our AI will provide detailed analysis and recommendations as soon as possible.
+              </p>
+              <p className="text-gray-600">
+                Prefer direct contact? Reach us at{' '}
+                <a 
+                  href="mailto:lantianlaoli@gmail.com" 
+                  className="text-blue-600 hover:text-blue-800 underline"
+                >
+                  lantianlaoli@gmail.com
+                </a>
+              </p>
+            </div>
 
-        {/* File Preview */}
-        {files.length > 0 && (
-          <div className="mt-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Selected Images</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {files.map((file, index) => (
-                <div key={index} className="relative border border-gray-200 rounded-lg p-4">
-                  <button
-                    onClick={() => removeFile(index)}
-                    className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                  <img
-                    src={URL.createObjectURL(file)}
-                    alt={`Preview ${index + 1}`}
-                    className="w-full h-32 object-cover rounded-lg mb-2"
-                  />
-                  <p className="text-sm text-gray-600 truncate">{file.name}</p>
-                </div>
-              ))}
+            {/* Illustration */}
+            <div className="relative">
+              <Image
+                src="/example/analysis.png"
+                alt="Analysis illustration"
+                width={400}
+                height={300}
+                className="w-full max-w-md h-auto"
+              />
             </div>
           </div>
-        )}
-      </div>
 
-      {/* Description Section */}
-      <div className="bg-white border border-gray-200 rounded-xl p-8">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Description (Optional)</h2>
-        <textarea
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Describe the location of the cracks, when you first noticed them, or any other relevant details..."
-          className="w-full h-32 p-4 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-        />
-      </div>
+          {/* Right Side - Form */}
+          <div className="space-y-8">
+            {/* Upload Section */}
+            <div className="bg-white border border-gray-200 rounded-xl p-8">
+              <h3 className="text-xl font-semibold text-gray-900 mb-6">Upload Images</h3>
+              
+              {/* File Upload Area */}
+              {files.length === 0 ? (
+                <div
+                  className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${
+                    dragActive 
+                      ? 'border-blue-400 bg-blue-50' 
+                      : 'border-gray-300 hover:border-gray-400'
+                  }`}
+                  onDragEnter={handleDrag}
+                  onDragLeave={handleDrag}
+                  onDragOver={handleDrag}
+                  onDrop={handleDrop}
+                >
+                  <Camera className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <h4 className="text-lg font-medium text-gray-900 mb-2">
+                    Drop images here or click to upload
+                  </h4>
+                  <p className="text-gray-600 mb-4">
+                    Support JPG, PNG files. Maximum 3 images.
+                  </p>
+                  <label className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors cursor-pointer">
+                    <Upload className="w-4 h-4" />
+                    Choose Files
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={handleFileSelect}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+              ) : (
+                <div
+                  className={`border-2 border-dashed rounded-xl p-4 transition-colors ${
+                    dragActive 
+                      ? 'border-blue-400 bg-blue-50' 
+                      : 'border-gray-200'
+                  }`}
+                  onDragEnter={handleDrag}
+                  onDragLeave={handleDrag}
+                  onDragOver={handleDrag}
+                  onDrop={handleDrop}
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-4">
+                    {files.map((file, index) => (
+                      <div key={index} className="relative border border-gray-200 rounded-lg p-4">
+                        <button
+                          onClick={() => removeFile(index)}
+                          className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors z-10"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                        <img
+                          src={URL.createObjectURL(file)}
+                          alt={`Preview ${index + 1}`}
+                          className="w-full h-32 object-cover rounded-lg mb-2"
+                        />
+                        <p className="text-sm text-gray-600 truncate">{file.name}</p>
+                      </div>
+                    ))}
+                    
+                    {/* Add More Button */}
+                    {files.length < 3 && (
+                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 flex items-center justify-center hover:border-gray-400 transition-colors">
+                        <label className="cursor-pointer flex flex-col items-center justify-center w-full h-32 text-gray-500 hover:text-gray-700">
+                          <Plus className="w-8 h-8 mb-2" />
+                          <span className="text-sm font-medium">Add More</span>
+                          <input
+                            type="file"
+                            multiple
+                            accept="image/*"
+                            onChange={handleFileSelect}
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
 
-      {/* Action Buttons */}
-      <div className="flex justify-end space-x-4">
-        <Link
-          href="/dashboard"
-          className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
-        >
-          Cancel
-        </Link>
-        <button
-          onClick={handleAnalyze}
-          disabled={files.length === 0 || isAnalyzing}
-          className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-        >
-          {isAnalyzing ? 'Analyzing...' : 'Start Analysis'}
-        </button>
+            {/* Description Section */}
+            <div className="bg-white border border-gray-200 rounded-xl p-8">
+              <h3 className="text-xl font-semibold text-black mb-4">Description (Optional)</h3>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Describe the location of the cracks, when you first noticed them, or any other relevant details..."
+                className="w-full h-32 p-4 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder:text-gray-500"
+              />
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex justify-end space-x-4">
+              <Link
+                href="/dashboard"
+                className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </Link>
+              <button
+                onClick={handleAnalyze}
+                disabled={files.length === 0 || isAnalyzing}
+                className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+              >
+                {isAnalyzing ? 'Analyzing...' : 'Start Analysis'}
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )
