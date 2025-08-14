@@ -6,6 +6,7 @@ import { useUser } from '@clerk/nextjs'
 import { ArrowLeft, Upload, X, Camera, Plus } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
+import Navigation from '@/components/Navigation'
 
 export default function AnalyzePage() {
   const { user } = useUser()
@@ -123,24 +124,28 @@ export default function AnalyzePage() {
 
   return (
     <div className="min-h-screen bg-white">
+      <Navigation />
+      
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-8 py-6">
-        <div className="flex items-center space-x-4">
-          <Link 
-            href="/dashboard"
-            className="p-2 rounded-xl hover:bg-gray-100 transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5 text-gray-600" />
-          </Link>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">New Analysis</h1>
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center space-x-4">
+            <Link 
+              href="/dashboard"
+              className="p-2 rounded-xl hover:bg-gray-100 transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5 text-gray-600" />
+            </Link>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">New Analysis</h1>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Main Content - Left Right Layout */}
       <div className="w-full">
-        <div className="grid lg:grid-cols-5 min-h-[calc(100vh-85px)]">
+        <div className="grid lg:grid-cols-5 min-h-[calc(100vh-140px)]">
           {/* Left Side - Content */}
           <div className="lg:col-span-2 bg-white px-12 py-16 flex flex-col justify-between">
             <div className="space-y-8">
