@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useUser } from '@clerk/nextjs'
+import { useUser, SignInButton, UserButton } from '@clerk/nextjs'
 import { isAdmin } from '@/lib/admin'
 
 export default function Navigation() {
@@ -46,12 +46,15 @@ export default function Navigation() {
                 Admin
               </Link>
             )}
-            <Link 
-              href="/sign-in"
-              className="bg-black text-white px-4 py-2 rounded-lg font-medium hover:bg-gray-800 transition-colors"
-            >
-              Get all access
-            </Link>
+            {user ? (
+              <UserButton />
+            ) : (
+              <SignInButton>
+                <button className="bg-black text-white px-4 py-2 rounded-lg font-medium hover:bg-gray-800 transition-colors">
+                  Sign In
+                </button>
+              </SignInButton>
+            )}
           </div>
         </div>
       </div>
