@@ -25,7 +25,7 @@ export default function ExamplePage() {
             <div className="lg:pl-8">
               <div className="relative">
                 <Image
-                  src="/images/example_illustration.png"
+                  src="/illustrations/example.png"
                   alt="Person analyzing data and templates"
                   width={400}
                   height={300}
