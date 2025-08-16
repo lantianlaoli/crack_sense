@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { ClerkProvider } from '@clerk/nextjs'
+import { UserInitializer } from '@/components/UserInitializer'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -16,6 +17,7 @@ export default function RootLayout({
     <ClerkProvider>
       <html lang="en">
         <body>
+          <UserInitializer />
           {children}
         </body>
       </html>

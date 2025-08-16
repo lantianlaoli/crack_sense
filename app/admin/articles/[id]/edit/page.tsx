@@ -36,7 +36,7 @@ export default async function EditArticlePage({ params }: { params: Promise<{ id
     <div className="p-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Edit Article</h1>
-        <p className="text-gray-600 mt-2">Make changes to "{article.title}"</p>
+        <p className="text-gray-600 mt-2">Make changes to &quot;{article.title}&quot;</p>
       </div>
 
       <div className="bg-white rounded-lg border border-gray-200 p-6">

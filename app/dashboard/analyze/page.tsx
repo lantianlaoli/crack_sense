@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
-import { Upload, X, Camera, Plus } from 'lucide-react'
+import { Upload, X, Camera, Plus, Coins, AlertCircle } from 'lucide-react'
 import Image from 'next/image'
+import Link from 'next/link'
 
 export default function AnalyzePage() {
   const { user } = useUser()
@@ -13,6 +14,36 @@ export default function AnalyzePage() {
   const [dragActive, setDragActive] = useState(false)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [description, setDescription] = useState('')
+  const [selectedModel, setSelectedModel] = useState<'gpt-4o-mini' | 'gpt-4o'>('gpt-4o-mini')
+  const [credits, setCredits] = useState<number | null>(null)
+  const [loadingCredits, setLoadingCredits] = useState(true)
+
+  // Credit costs
+  const modelCosts = {
+    'gpt-4o-mini': 200,
+    'gpt-4o': 500
+  }
+
+  useEffect(() => {
+    const fetchCredits = async () => {
+      if (!user?.id) return
+      
+      try {
+        const response = await fetch('/api/credits/check')
+        const data = await response.json()
+        
+        if (data.success) {
+          setCredits(data.credits)
+        }
+      } catch (error) {
+        console.error('Failed to fetch credits:', error)
+      } finally {
+        setLoadingCredits(false)
+      }
+    }
+
+    fetchCredits()
+  }, [user?.id])
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault()
@@ -53,6 +84,13 @@ export default function AnalyzePage() {
   const handleAnalyze = async () => {
     if (files.length === 0) return
 
+    // Check if user has enough credits
+    const requiredCredits = modelCosts[selectedModel]
+    if (credits !== null && credits < requiredCredits) {
+      alert(`Insufficient credits. You need ${requiredCredits} credits but only have ${credits}.`)
+      return
+    }
+
     setIsAnalyzing(true)
     try {
       // Step 1: Upload images
@@ -81,14 +119,23 @@ export default function AnalyzePage() {
         body: JSON.stringify({
           imageUrls,
           description,
+          model: selectedModel,
         }),
       })
 
       if (!analysisResponse.ok) {
-        throw new Error('Analysis failed')
+        const errorData = await analysisResponse.json()
+        if (analysisResponse.status === 402) {
+          alert(`Insufficient credits. You need ${errorData.requiredCredits} credits but only have ${errorData.currentCredits}.`)
+          return
+        }
+        throw new Error(errorData.error || 'Analysis failed')
       }
 
-      const { analysis } = await analysisResponse.json()
+      const { analysis, remainingCredits } = await analysisResponse.json()
+
+      // Update credits display
+      setCredits(remainingCredits)
 
       // Step 3: Save to database
       const saveResponse = await fetch('/api/cracks', {
@@ -129,10 +176,10 @@ export default function AnalyzePage() {
           <div className="bg-white px-16 py-20 flex flex-col justify-center">
             <div>
               <h2 className="text-6xl font-bold text-black mb-6 leading-tight">
-                We'd Love to<br />Hear From You
+                We&apos;d Love to<br />Hear From You
               </h2>
               <p className="text-xl text-gray-600 mb-8 leading-relaxed">
-                Reach out to us through the form below, and we'll get back to you as soon as possible.
+                Reach out to us through the form below, and we&apos;ll get back to you as soon as possible.
               </p>
               <p className="text-lg text-gray-600">
                 Prefer email? Reach us directly at{' '}
@@ -160,6 +207,25 @@ export default function AnalyzePage() {
           {/* Right Side - Form */}
           <div className="bg-white px-16 py-20 flex items-center justify-center">
             <div className="w-full max-w-2xl">
+              {/* Credits Display */}
+              <div className="bg-blue-50 rounded-2xl p-4 mb-6 flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <Coins className="w-5 h-5 text-blue-600" />
+                  <span className="text-sm font-medium text-gray-700">Available Credits:</span>
+                  <span className="text-lg font-bold text-blue-600">
+                    {loadingCredits ? '...' : credits?.toLocaleString() || 0}
+                  </span>
+                </div>
+                {credits !== null && credits < 500 && (
+                  <Link 
+                    href="/#pricing"
+                    className="text-sm bg-blue-600 text-white px-3 py-1 rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Buy More
+                  </Link>
+                )}
+              </div>
+
               {/* Form Container with Gray Background */}
               <div className="bg-gray-50 rounded-3xl p-12 space-y-10">
                 {/* Upload Section */}
@@ -219,6 +285,7 @@ export default function AnalyzePage() {
                           >
                             <X className="w-4 h-4" />
                           </button>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={URL.createObjectURL(file)}
                             alt={`Preview ${index + 1}`}
@@ -260,15 +327,88 @@ export default function AnalyzePage() {
                   />
                 </div>
 
+                {/* AI Model Selection */}
+                <div>
+                  <h3 className="text-2xl font-semibold text-gray-900 mb-6">AI Model Selection</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* GPT-4o Mini */}
+                    <div 
+                      className={`bg-white border-2 rounded-xl p-4 cursor-pointer transition-all ${
+                        selectedModel === 'gpt-4o-mini' 
+                          ? 'border-blue-500 bg-blue-50' 
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                      onClick={() => setSelectedModel('gpt-4o-mini')}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-semibold text-gray-900">GPT-4o Mini</h4>
+                        <div className="flex items-center space-x-1">
+                          <Coins className="w-4 h-4 text-blue-600" />
+                          <span className="text-sm font-medium text-blue-600">200</span>
+                        </div>
+                      </div>
+                      <p className="text-sm text-gray-600 mb-3">Fast and cost-effective for basic analysis</p>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-gray-500">Recommended for most cases</span>
+                        {credits !== null && credits < 200 && (
+                          <AlertCircle className="w-4 h-4 text-red-500" />
+                        )}
+                      </div>
+                    </div>
+
+                    {/* GPT-4o */}
+                    <div 
+                      className={`bg-white border-2 rounded-xl p-4 cursor-pointer transition-all ${
+                        selectedModel === 'gpt-4o' 
+                          ? 'border-blue-500 bg-blue-50' 
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                      onClick={() => setSelectedModel('gpt-4o')}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-semibold text-gray-900">GPT-4o</h4>
+                        <div className="flex items-center space-x-1">
+                          <Coins className="w-4 h-4 text-blue-600" />
+                          <span className="text-sm font-medium text-blue-600">500</span>
+                        </div>
+                      </div>
+                      <p className="text-sm text-gray-600 mb-3">Advanced analysis with higher accuracy</p>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-gray-500">For complex or critical issues</span>
+                        {credits !== null && credits < 500 && (
+                          <AlertCircle className="w-4 h-4 text-red-500" />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Action Buttons */}
-                <div className="flex justify-end space-x-4 pt-2">
-                  <button
-                    onClick={handleAnalyze}
-                    disabled={files.length === 0 || isAnalyzing}
-                    className="px-8 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-                  >
-                    {isAnalyzing ? 'Analyzing...' : 'Start Analysis'}
-                  </button>
+                <div className="space-y-4 pt-2">
+                  {/* Credit cost display */}
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-600">Analysis cost:</span>
+                    <div className="flex items-center space-x-1">
+                      <Coins className="w-4 h-4 text-blue-600" />
+                      <span className="font-medium text-gray-900">{modelCosts[selectedModel]} credits</span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-end space-x-4">
+                    <button
+                      onClick={handleAnalyze}
+                      disabled={
+                        files.length === 0 || 
+                        isAnalyzing || 
+                        (credits !== null && credits < modelCosts[selectedModel])
+                      }
+                      className="px-8 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    >
+                      {isAnalyzing ? 'Analyzing...' : 
+                       credits !== null && credits < modelCosts[selectedModel] ? 'Insufficient Credits' :
+                       'Start Analysis'}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

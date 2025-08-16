@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabase'
 import { currentUser } from '@clerk/nextjs/server'
 import { isAdmin } from '@/lib/admin'
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const { data, error } = await supabase
       .from('articles')

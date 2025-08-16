@@ -25,3 +25,11 @@ export interface CrackRecord {
   expert_notes?: string
   risk_level: 'low' | 'moderate' | 'high'
 }
+
+// Database types for user_credits table
+export interface UserCredits {
+  id: string
+  user_id: string
+  credits_remaining: number
+  creem_id?: string
+}

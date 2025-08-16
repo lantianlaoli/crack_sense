@@ -1,6 +1,8 @@
-import { User } from '@clerk/nextjs/server'
+interface UserWithEmail {
+  emailAddresses?: Array<{ emailAddress: string }>
+}
 
-export function isAdmin(user: any): boolean {
+export function isAdmin(user: UserWithEmail | null | undefined): boolean {
   if (!user || !user.emailAddresses || user.emailAddresses.length === 0) {
     return false
   }
@@ -11,7 +13,7 @@ export function isAdmin(user: any): boolean {
   return userEmail === adminEmail
 }
 
-export function requireAdmin(user: any): void {
+export function requireAdmin(user: UserWithEmail | null | undefined): void {
   if (!isAdmin(user)) {
     throw new Error('Admin access required')
   }
