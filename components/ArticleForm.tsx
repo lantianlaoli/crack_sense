@@ -18,6 +18,10 @@ export default function ArticleForm({ article, onSubmit }: ArticleFormProps) {
   const [title, setTitle] = useState(article?.title || '')
   const [slug, setSlug] = useState(article?.slug || '')
   const [content, setContent] = useState(article?.content || '')
+  const [thumbnail, setThumbnail] = useState(article?.thumbnail || '')
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null)
+  const [thumbnailPreview, setThumbnailPreview] = useState(article?.thumbnail || '')
+  const [uploadingThumbnail, setUploadingThumbnail] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
@@ -28,6 +32,53 @@ export default function ArticleForm({ article, onSubmit }: ArticleFormProps) {
       setSlug(generateSlug(title))
     }
   }, [title, article])
+
+  // Handle thumbnail file selection
+  const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setThumbnailFile(file)
+      // Create preview URL
+      const previewUrl = URL.createObjectURL(file)
+      setThumbnailPreview(previewUrl)
+    }
+  }
+
+  // Upload thumbnail
+  const uploadThumbnail = async () => {
+    if (!thumbnailFile) return null
+
+    setUploadingThumbnail(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', thumbnailFile)
+
+      const response = await fetch('/api/upload/thumbnail', {
+        method: 'POST',
+        body: formData,
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to upload thumbnail')
+      }
+
+      return data.url
+    } catch (error) {
+      console.error('Thumbnail upload error:', error)
+      throw error
+    } finally {
+      setUploadingThumbnail(false)
+    }
+  }
+
+  // Remove thumbnail
+  const removeThumbnail = () => {
+    setThumbnail('')
+    setThumbnailFile(null)
+    setThumbnailPreview('')
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -41,6 +92,12 @@ export default function ArticleForm({ article, onSubmit }: ArticleFormProps) {
     setError('')
 
     try {
+      // Upload thumbnail if a new file is selected
+      let finalThumbnailUrl = thumbnail
+      if (thumbnailFile) {
+        finalThumbnailUrl = await uploadThumbnail()
+      }
+
       const method = article ? 'PUT' : 'POST'
       const url = article ? `/api/articles/${article.id}` : '/api/articles'
 
@@ -49,7 +106,7 @@ export default function ArticleForm({ article, onSubmit }: ArticleFormProps) {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ title, slug, content }),
+        body: JSON.stringify({ title, slug, content, thumbnail: finalThumbnailUrl }),
       })
 
       const data = await response.json()
@@ -59,7 +116,7 @@ export default function ArticleForm({ article, onSubmit }: ArticleFormProps) {
       }
 
       if (onSubmit) {
-        onSubmit({ title, slug, content })
+        onSubmit({ title, slug, content, thumbnail: finalThumbnailUrl })
       } else {
         router.push('/admin/articles')
       }
@@ -109,7 +166,53 @@ export default function ArticleForm({ article, onSubmit }: ArticleFormProps) {
           required
         />
         <p className="text-sm text-gray-500 mt-1">
-          Article URL will be: /blog/{slug}
+          Article URL will be: /blogs/{slug}
+        </p>
+      </div>
+
+      {/* Thumbnail */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Thumbnail (Optional)
+        </label>
+        
+        {thumbnailPreview && (
+          <div className="mb-4">
+            <div className="relative inline-block">
+              <img
+                src={thumbnailPreview}
+                alt="Thumbnail preview"
+                className="w-48 h-32 object-cover rounded-lg border border-gray-300"
+              />
+              <button
+                type="button"
+                onClick={removeThumbnail}
+                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div className="flex items-center gap-4">
+          <label className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg cursor-pointer hover:bg-gray-200 transition-colors">
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleThumbnailChange}
+              className="hidden"
+            />
+            {thumbnailPreview ? 'Change Thumbnail' : 'Upload Thumbnail'}
+          </label>
+          
+          {uploadingThumbnail && (
+            <span className="text-sm text-gray-500">Uploading...</span>
+          )}
+        </div>
+        
+        <p className="text-sm text-gray-500 mt-1">
+          Recommended: 16:9 aspect ratio, max 5MB
         </p>
       </div>
 

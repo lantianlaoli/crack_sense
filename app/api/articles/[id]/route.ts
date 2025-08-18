@@ -43,7 +43,7 @@ export async function PUT(
     }
 
     const body = await request.json()
-    const { title, slug, content } = body
+    const { title, slug, content, thumbnail } = body
 
     if (!title || !slug || !content) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -63,7 +63,7 @@ export async function PUT(
 
     const { data, error } = await supabase
       .from('articles')
-      .update({ title, slug, content })
+      .update({ title, slug, content, thumbnail })
       .eq('id', id)
       .select()
       .single()

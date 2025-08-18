@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { title, slug, content } = body
+    const { title, slug, content, thumbnail } = body
 
     if (!title || !slug || !content) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
 
     const { data, error } = await supabase
       .from('articles')
-      .insert([{ title, slug, content }])
+      .insert([{ title, slug, content, thumbnail }])
       .select()
       .single()
 

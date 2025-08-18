@@ -30,65 +30,72 @@ function getUserDisplayName(userId: string): string {
 
 export default function ExampleCard({ crack }: ExampleCardProps) {
   const displayName = getUserDisplayName(crack.user_id)
-  const riskColorClass = getRiskLevelColor(crack.risk_level)
   const previewImage = crack.image_urls[0] || '/images/placeholder-crack.jpg'
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow duration-200">
-      {/* Image */}
-      <div className="relative h-48 bg-gray-100">
-        <Image
-          src={previewImage}
-          alt={`Crack analysis example`}
-          fill
-          className="object-cover"
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-        />
-        
-        {/* Risk Level Badge */}
-        <div className="absolute top-3 left-3">
-          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${riskColorClass}`}>
-            {crack.risk_level || 'Unknown'} Risk
+    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden group">
+      {/* Risk Level Badge */}
+      <div className="p-6 pb-4">
+        <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border shadow-sm ${
+          crack.risk_level === 'high' ? 'bg-red-50 border-red-200 text-red-700' : 
+          crack.risk_level === 'moderate' ? 'bg-yellow-50 border-yellow-200 text-yellow-700' : 
+          'bg-green-50 border-green-200 text-green-700'
+        } mb-4`}>
+          <div className={`w-2 h-2 rounded-full ${
+            crack.risk_level === 'high' ? 'bg-red-500' : 
+            crack.risk_level === 'moderate' ? 'bg-yellow-500' : 
+            'bg-green-500'
+          }`}></div>
+          <span className="text-sm font-medium">
+            {crack.risk_level ? crack.risk_level.charAt(0).toUpperCase() + crack.risk_level.slice(1) : 'Unknown'} Risk
           </span>
         </div>
       </div>
 
-      {/* Content */}
-      <div className="p-6">
-        {/* User Name */}
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">
-          {displayName}
-        </h3>
+      {/* Image */}
+      <div className="px-6 pb-6">
+        <div className="relative h-48 bg-gray-900 rounded-xl overflow-hidden border-4 border-gray-900 group-hover:scale-105 transition-transform duration-300">
+          <Image
+            src={previewImage}
+            alt={`Crack analysis example`}
+            fill
+            className="object-cover"
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          />
+        </div>
+      </div>
 
-        {/* Description (truncated) */}
-        <p className="text-gray-600 text-sm mb-4 truncate">
+      {/* Content */}
+      <div className="px-6 pb-6">
+        {/* Case Title */}
+        <div className="mb-3">
+          <h3 className="text-xl font-bold text-gray-900 leading-tight">
+            {displayName} Case
+          </h3>
+        </div>
+
+        {/* Description */}
+        <p className="text-gray-600 text-sm mb-6 leading-relaxed">
           {crack.description}
         </p>
 
-        {/* AI Notes Preview */}
-        {crack.ai_notes && (
-          <p className="text-xs text-gray-500 mb-4 overflow-hidden" style={{
-            display: '-webkit-box',
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: 'vertical'
-          }}>
-            AI Analysis: {crack.ai_notes}
-          </p>
-        )}
-
-        {/* Date */}
-        <div className="flex justify-between items-center">
-          <span className="text-xs text-gray-400">
-            {new Date(crack.created_at).toLocaleDateString()}
-          </span>
-          
-          <Link 
-            href={`/example/${crack.id}`}
-            className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-          >
-            View Details →
-          </Link>
-        </div>
+        {/* Access Button */}
+        <Link 
+          href={`/examples/${crack.id}`}
+          className="inline-flex items-center justify-center w-full bg-black text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:bg-gray-800 hover:shadow-xl transition-all cursor-pointer relative overflow-hidden"
+        >
+          View Analysis
+          <div className="ml-2 relative w-4 h-4">
+            {/* Original single arrow */}
+            <svg className="w-4 h-4 absolute inset-0 group-hover:translate-x-full group-hover:opacity-0 transition-all duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+            {/* New double arrow that slides in from right */}
+            <svg className="w-4 h-4 absolute inset-0 translate-x-full opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition-all duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5-5 5M6 7l5 5-5 5" />
+            </svg>
+          </div>
+        </Link>
       </div>
     </div>
   )

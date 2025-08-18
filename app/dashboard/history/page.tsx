@@ -4,12 +4,28 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, Search, Filter, Calendar, AlertTriangle, CheckCircle, Info, Eye, Loader2 } from 'lucide-react'
 
+interface AnalysisHistory {
+  id: string
+  date: string
+  location: string
+  riskLevel: string
+  crackCount: number
+  confidence: number
+  status: string
+}
+
+interface CrackData {
+  id: string
+  created_at: string
+  description: string
+  risk_level: string
+}
+
 export default function HistoryPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterRisk, setFilterRisk] = useState('all')
-  const [analysisHistory, setAnalysisHistory] = useState<any[]>([])
+  const [analysisHistory, setAnalysisHistory] = useState<AnalysisHistory[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     fetchAnalysisHistory()
@@ -24,7 +40,7 @@ export default function HistoryPage() {
       const { cracks } = await response.json()
       
       // Transform API data to component format
-      const transformedHistory = cracks.map((crack: any) => ({
+      const transformedHistory = cracks.map((crack: CrackData) => ({
         id: crack.id,
         date: crack.created_at,
         location: crack.description || 'Crack analysis',
@@ -43,45 +59,6 @@ export default function HistoryPage() {
     }
   }
 
-  // Mock data for fallback - remove when API is working
-  const mockAnalysisHistory = [
-    {
-      id: 'analysis-123',
-      date: '2024-01-15',
-      location: 'Living room wall',
-      riskLevel: 'moderate',
-      crackCount: 3,
-      confidence: 87,
-      status: 'completed'
-    },
-    {
-      id: 'analysis-122',
-      date: '2024-01-10',
-      location: 'Bedroom ceiling',
-      riskLevel: 'low',
-      crackCount: 1,
-      confidence: 92,
-      status: 'completed'
-    },
-    {
-      id: 'analysis-121',
-      date: '2024-01-05',
-      location: 'Kitchen wall',
-      riskLevel: 'high',
-      crackCount: 5,
-      confidence: 95,
-      status: 'completed'
-    },
-    {
-      id: 'analysis-120',
-      date: '2023-12-28',
-      location: 'Bathroom wall',
-      riskLevel: 'low',
-      crackCount: 2,
-      confidence: 89,
-      status: 'completed'
-    }
-  ]
 
   const getRiskColor = (level: string) => {
     switch (level) {
@@ -187,7 +164,7 @@ export default function HistoryPage() {
           Showing {filteredHistory.length} of {analysisHistory.length} analyses
         </p>
         <Link
-          href="/dashboard/analyze"
+          href="/dashboard"
           className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
         >
           New Analysis
@@ -207,7 +184,7 @@ export default function HistoryPage() {
               }
             </p>
             <Link
-              href="/dashboard/analyze"
+              href="/dashboard"
               className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
             >
               Create First Analysis

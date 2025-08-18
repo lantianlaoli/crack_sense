@@ -1,34 +1,31 @@
 // Credit costs for different AI models
 export const CREDIT_COSTS = {
-  'gpt-4o-mini': 200,
-  'gpt-4o': 500,
+  'gemini-2.0-flash': 200,
+  'gemini-2.5-flash': 500,
 } as const
 
 // Package definitions (hardcoded)
 export const PACKAGES = {
   starter: {
-    name: 'Starter Pack',
+    name: 'Starter',
     price: 8.99,
     credits: 8000,
-    description: 'Perfect for personal use',
+    description: 'Individuals & small teams',
     features: [
       '8,000 credits included',
-      '40 GPT-4o-mini analyses',
-      'One-time purchase',
-      'No subscription required'
+      '40 analyses',
+      'Structural engineer support'
     ]
   },
   pro: {
-    name: 'Pro Pack', 
+    name: 'Pro', 
     price: 29.99,
     credits: 24000,
-    description: 'Best value for professionals',
+    description: 'Professionals & creators',
     features: [
       '24,000 credits included',
-      '48 GPT-4o analyses',
-      '120 GPT-4o-mini analyses',
-      'One-time purchase',
-      '40% better value per analysis'
+      '120 analyses',
+      'Structural engineer support'
     ]
   }
 } as const

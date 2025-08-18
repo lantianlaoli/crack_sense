@@ -108,7 +108,7 @@ export default async function AdminDashboard() {
                   </div>
                   <div className="flex items-center gap-2">
                     <Link
-                      href={`/blog/${article.slug}`}
+                      href={`/blogs/${article.slug}`}
                       className="text-sm text-blue-600 hover:text-blue-800"
                       target="_blank"
                       rel="noopener noreferrer"

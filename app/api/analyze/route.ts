@@ -120,12 +120,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Maximum 3 images allowed' }, { status: 400 })
     }
 
-    if (!['gpt-4o-mini', 'gpt-4o'].includes(model)) {
+    if (!['gemini-2.0-flash', 'gemini-2.5-flash'].includes(model)) {
       return NextResponse.json({ error: 'Invalid model specified' }, { status: 400 })
     }
 
     // Check if user has enough credits
-    const requiredCredits = getCreditCost(model as 'gpt-4o-mini' | 'gpt-4o')
+    const requiredCredits = getCreditCost(model as 'gemini-2.0-flash' | 'gemini-2.5-flash')
     const creditCheck = await checkCredits(userId, requiredCredits)
 
     if (!creditCheck.success) {

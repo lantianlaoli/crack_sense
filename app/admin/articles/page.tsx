@@ -134,7 +134,7 @@ export default function ArticlesManagementPage() {
                     <td className="py-4 px-6">
                       <div className="flex items-center justify-end gap-2">
                         <Link
-                          href={`/blog/${article.slug}`}
+                          href={`/blogs/${article.slug}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-blue-600 hover:text-blue-800 text-sm font-medium"

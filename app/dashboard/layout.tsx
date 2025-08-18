@@ -8,8 +8,7 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  const pathname = usePathname()
-  const isAnalyzePage = pathname?.startsWith('/dashboard/analyze')
+  const isAnalyzePage = false  // Analysis functionality is now in the main dashboard modal
 
   return (
     <div className="min-h-screen bg-white">

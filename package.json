@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@clerk/nextjs": "^6.24.0",
+    "@heroicons/react": "^2.2.0",
+    "@playwright/test": "^1.54.2",
     "@supabase/supabase-js": "^2.50.5",
     "@tailwindcss/typography": "^0.5.16",
     "@uiw/react-md-editor": "^4.0.8",

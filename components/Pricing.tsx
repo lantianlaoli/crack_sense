@@ -1,15 +1,30 @@
 'use client'
 
 import { useUser } from '@clerk/nextjs'
-import { useState } from 'react'
-import { PACKAGES } from '@/lib/constants'
+import { useState, useEffect } from 'react'
+import { TagIcon } from '@heroicons/react/24/outline'
+import { PACKAGES, CREDIT_COSTS } from '@/lib/constants'
+import CountingNumber from './CountingNumber'
 
 export default function Pricing() {
   const { user } = useUser()
-  const [paymentLoading, setPaymentLoading] = useState(false)
+  const [paymentLoading, setPaymentLoading] = useState({ starter: false, pro: false })
+  const [selectedModel, setSelectedModel] = useState<'gemini-2.0-flash' | 'gemini-2.5-flash'>('gemini-2.0-flash')
+  const [animationKey, setAnimationKey] = useState(0)
+
+  // Calculate analyses based on selected model
+  const getAnalysesCount = (credits: number) => {
+    const creditCost = CREDIT_COSTS[selectedModel]
+    return Math.floor(credits / creditCost)
+  }
+
+  // Trigger animation when model changes
+  useEffect(() => {
+    setAnimationKey(prev => prev + 1)
+  }, [selectedModel])
 
   const handlePurchase = async (packageName: 'starter' | 'pro') => {
-    if (paymentLoading || !user?.id) return
+    if (paymentLoading[packageName] || !user?.id) return
     
     const userEmail = user.emailAddresses?.[0]?.emailAddress
     if (!userEmail) {
@@ -17,7 +32,7 @@ export default function Pricing() {
       return
     }
     
-    setPaymentLoading(true)
+    setPaymentLoading(prev => ({ ...prev, [packageName]: true }))
     try {
       const response = await fetch('/api/create-checkout', {
         method: 'POST',
@@ -42,122 +57,230 @@ export default function Pricing() {
       console.error('Payment error:', error)
       alert('Something went wrong. Please try again.')
     } finally {
-      setPaymentLoading(false)
+      setPaymentLoading(prev => ({ ...prev, [packageName]: false }))
     }
   }
 
   return (
-    <section className="py-20 bg-gray-50">
+    <section className="py-20 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center mb-16">
-          <h2 className="text-4xl lg:text-5xl font-bold text-black mb-6">
-            Simple, Transparent Pricing
+          <h2 className="text-4xl lg:text-5xl font-bold text-gray-800 mb-6">
+            Prices
           </h2>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto mb-4">
-            Pay once, use forever. No subscriptions, no hidden fees. Choose the package that fits your needs.
+            No hidden fees. Just clear answers about your wall cracks.
           </p>
-          <div className="inline-flex items-center bg-green-50 text-green-700 px-4 py-2 rounded-full text-sm font-medium">
-            🎉 New users get 1,000 free credits (5 analyses) to get started!
-          </div>
         </div>
 
-        {/* Pricing Cards */}
-        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+        {/* Pricing Cards Container with Gray Background */}
+        <div className="relative bg-gray-100 rounded-3xl p-6 max-w-5xl mx-auto">
+          {/* Model Switcher in top right */}
+          <div className="absolute top-4 right-6">
+            <div className="bg-white rounded-lg p-1 inline-flex shadow-sm">
+              <button
+                onClick={() => setSelectedModel('gemini-2.0-flash')}
+                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  selectedModel === 'gemini-2.0-flash'
+                    ? 'bg-black text-white'
+                    : 'text-gray-600 hover:text-black'
+                }`}
+              >
+                Gemini 2.0 Flash
+              </button>
+              <button
+                onClick={() => setSelectedModel('gemini-2.5-flash')}
+                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  selectedModel === 'gemini-2.5-flash'
+                    ? 'bg-black text-white'
+                    : 'text-gray-600 hover:text-black'
+                }`}
+              >
+                Gemini 2.5 Flash
+              </button>
+            </div>
+          </div>
+          
+          <div className="grid md:grid-cols-2 gap-6 pt-12">
           {/* Starter Pack */}
-          <div className="bg-white rounded-2xl p-8 border border-gray-200 hover:shadow-lg transition-shadow">
-            <div className="text-center mb-8">
-              <h3 className="text-2xl font-bold text-black mb-2">{PACKAGES.starter.name}</h3>
-              <p className="text-gray-600 mb-4">{PACKAGES.starter.description}</p>
-              <div className="flex items-baseline justify-center">
-                <span className="text-5xl font-bold text-black">${PACKAGES.starter.price}</span>
-              </div>
-              <p className="text-gray-500 mt-2">One-time payment</p>
+          <div className="bg-white rounded-2xl p-8 border-2 border-black relative hover:shadow-lg transition-shadow">
+            {/* Recommended Badge */}
+            <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-black text-white text-sm font-medium px-4 py-1 rounded-full">
+              Recommended
+            </div>
+            
+            {/* Icon and Title */}
+            <div className="flex items-center mb-6">
+              <TagIcon className="w-6 h-6 text-black mr-3" />
+              <h3 className="text-2xl font-bold text-black">{PACKAGES.starter.name}</h3>
             </div>
 
-            <ul className="space-y-4 mb-8">
-              {PACKAGES.starter.features.map((feature, index) => (
-                <li key={index} className="flex items-center">
-                  <svg className="w-5 h-5 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+            {/* Price */}
+            <div className="mb-4">
+              <div className="flex items-baseline">
+                <CountingNumber 
+                  key={`starter-price-${animationKey}`}
+                  end={PACKAGES.starter.price}
+                  prefix="$"
+                  className="text-5xl font-bold text-black"
+                  duration={1200}
+                  decimals={2}
+                />
+              </div>
+              <p className="text-gray-500 mt-1">One-time payment</p>
+            </div>
+
+            {/* Description */}
+            <div className="mb-6">
+              <p className="text-black font-bold">{PACKAGES.starter.description}</p>
+            </div>
+
+            {/* Features */}
+            <ul className="space-y-3 mb-8">
+              <li className="flex items-center">
+                <div className="w-5 h-5 bg-black rounded-full flex items-center justify-center mr-3 flex-shrink-0">
+                  <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
-                  <span className="text-gray-700">{feature}</span>
-                </li>
-              ))}
+                </div>
+                <span className="text-gray-700">
+                  <CountingNumber 
+                    key={`starter-credits-${animationKey}`}
+                    end={PACKAGES.starter.credits}
+                    suffix=" credits included"
+                    duration={1000}
+                  />
+                </span>
+              </li>
+              <li className="flex items-center">
+                <div className="w-5 h-5 bg-black rounded-full flex items-center justify-center mr-3 flex-shrink-0">
+                  <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <span className="text-gray-700">
+                  <CountingNumber 
+                    key={`starter-analyses-${animationKey}`}
+                    end={getAnalysesCount(PACKAGES.starter.credits)}
+                    suffix=" analyses"
+                    duration={1100}
+                  />
+                </span>
+              </li>
+              <li className="flex items-center">
+                <div className="w-5 h-5 bg-black rounded-full flex items-center justify-center mr-3 flex-shrink-0">
+                  <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <span className="text-gray-700">Structural engineer support</span>
+              </li>
             </ul>
 
             {!user ? (
-              <button className="w-full bg-gray-300 text-gray-500 rounded-full py-3 px-6 font-medium cursor-not-allowed">
+              <button className="w-full bg-gray-300 text-gray-500 rounded-lg py-3 px-6 font-medium cursor-not-allowed">
                 Sign in required
               </button>
             ) : (
               <button
                 onClick={() => handlePurchase('starter')}
-                disabled={paymentLoading}
-                className="w-full bg-black text-white rounded-full py-3 px-6 font-medium hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={paymentLoading.starter}
+                className="w-full bg-black text-white rounded-lg py-3 px-6 font-medium hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {paymentLoading ? 'Processing...' : 'Get Starter Pack'}
+                {paymentLoading.starter ? 'Processing...' : 'Start Checking'}
               </button>
             )}
           </div>
 
           {/* Pro Pack */}
-          <div className="bg-white rounded-2xl p-8 border-2 border-black relative hover:shadow-lg transition-shadow">
-            {/* Recommended Badge */}
-            <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-black text-white text-sm font-medium px-4 py-1 rounded-full">
-              Best Value
+          <div className="bg-white rounded-2xl p-8 border border-gray-200 hover:shadow-lg transition-shadow">
+            
+            {/* Icon and Title */}
+            <div className="flex items-center mb-6">
+              <TagIcon className="w-6 h-6 text-black mr-3" />
+              <h3 className="text-2xl font-bold text-black">{PACKAGES.pro.name}</h3>
             </div>
 
-            <div className="text-center mb-8">
-              <h3 className="text-2xl font-bold text-black mb-2">{PACKAGES.pro.name}</h3>
-              <p className="text-gray-600 mb-4">{PACKAGES.pro.description}</p>
-              <div className="flex items-baseline justify-center">
-                <span className="text-5xl font-bold text-black">${PACKAGES.pro.price}</span>
+            {/* Price */}
+            <div className="mb-4">
+              <div className="flex items-baseline">
+                <CountingNumber 
+                  key={`pro-price-${animationKey}`}
+                  end={PACKAGES.pro.price}
+                  prefix="$"
+                  className="text-5xl font-bold text-black"
+                  duration={1200}
+                  decimals={2}
+                />
               </div>
-              <p className="text-gray-500 mt-2">One-time payment</p>
+              <p className="text-gray-500 mt-1">One-time payment</p>
             </div>
 
-            <ul className="space-y-4 mb-8">
-              {PACKAGES.pro.features.map((feature, index) => (
-                <li key={index} className="flex items-center">
-                  <svg className="w-5 h-5 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+            {/* Description */}
+            <div className="mb-6">
+              <p className="text-black font-bold">{PACKAGES.pro.description}</p>
+            </div>
+
+            {/* Features */}
+            <ul className="space-y-3 mb-8">
+              <li className="flex items-center">
+                <div className="w-5 h-5 bg-black rounded-full flex items-center justify-center mr-3 flex-shrink-0">
+                  <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
-                  <span className="text-gray-700">{feature}</span>
-                </li>
-              ))}
+                </div>
+                <span className="text-gray-700">
+                  <CountingNumber 
+                    key={`pro-credits-${animationKey}`}
+                    end={PACKAGES.pro.credits}
+                    suffix=" credits included"
+                    duration={1000}
+                  />
+                </span>
+              </li>
+              <li className="flex items-center">
+                <div className="w-5 h-5 bg-black rounded-full flex items-center justify-center mr-3 flex-shrink-0">
+                  <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <span className="text-gray-700">
+                  <CountingNumber 
+                    key={`pro-analyses-${animationKey}`}
+                    end={getAnalysesCount(PACKAGES.pro.credits)}
+                    suffix=" analyses"
+                    duration={1100}
+                  />
+                </span>
+              </li>
+              <li className="flex items-center">
+                <div className="w-5 h-5 bg-black rounded-full flex items-center justify-center mr-3 flex-shrink-0">
+                  <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <span className="text-gray-700">Structural engineer support</span>
+              </li>
             </ul>
 
             {!user ? (
-              <button className="w-full bg-gray-300 text-gray-500 rounded-full py-3 px-6 font-medium cursor-not-allowed">
+              <button className="w-full bg-gray-300 text-gray-500 rounded-lg py-3 px-6 font-medium cursor-not-allowed">
                 Sign in required
               </button>
             ) : (
               <button
                 onClick={() => handlePurchase('pro')}
-                disabled={paymentLoading}
-                className="w-full bg-black text-white rounded-full py-3 px-6 font-medium hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={paymentLoading.pro}
+                className="w-full bg-black text-white rounded-lg py-3 px-6 font-medium hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {paymentLoading ? 'Processing...' : 'Get Pro Pack'}
+                {paymentLoading.pro ? 'Processing...' : 'Get Pro Value'}
               </button>
             )}
           </div>
-        </div>
-
-        {/* Credit Info */}
-        <div className="text-center mt-12">
-          <h3 className="text-xl font-semibold text-black mb-4">AI Model Costs</h3>
-          <div className="grid md:grid-cols-2 gap-4 max-w-lg mx-auto">
-            <div className="bg-white rounded-lg p-4 border border-gray-200">
-              <div className="font-medium text-black">GPT-4o Mini</div>
-              <div className="text-gray-600">200 credits per analysis</div>
-            </div>
-            <div className="bg-white rounded-lg p-4 border border-gray-200">
-              <div className="font-medium text-black">GPT-4o</div>
-              <div className="text-gray-600">500 credits per analysis</div>
-            </div>
           </div>
         </div>
+
       </div>
     </section>
   )
