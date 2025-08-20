@@ -64,7 +64,7 @@ interface CrackExample {
   id: string
   description: string
   image_urls: string[]
-  risk_level: string
+  risk_level: 'low' | 'moderate' | 'high'
   ai_notes: string
   created_at: string
   user_id: string
@@ -79,9 +79,9 @@ export default function ExamplesContent({ cracks }: ExamplesContentProps) {
 
   const filteredCracks = cracks.filter(crack => {
     if (activeCategory === 'all') return true
-    if (activeCategory === 'high') return crack.risk_level === 'High'
-    if (activeCategory === 'moderate') return crack.risk_level === 'Moderate'
-    if (activeCategory === 'low') return crack.risk_level === 'Low'
+    if (activeCategory === 'high') return crack.risk_level === 'high'
+    if (activeCategory === 'moderate') return crack.risk_level === 'moderate'
+    if (activeCategory === 'low') return crack.risk_level === 'low'
     if (activeCategory === 'structural') return crack.description.includes('structural') || crack.description.includes('load-bearing')
     if (activeCategory === 'surface') return crack.description.includes('surface') || crack.description.includes('coating')
     return true

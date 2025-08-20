@@ -13,6 +13,12 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData()
     const files = formData.getAll('files') as File[]
 
+    console.log('Upload request:', {
+      userId,
+      fileCount: files?.length || 0,
+      files: files?.map(f => ({ name: f.name, size: f.size, type: f.type })) || []
+    })
+
     if (!files || files.length === 0) {
       return NextResponse.json({ error: 'No files provided' }, { status: 400 })
     }
@@ -43,6 +49,12 @@ export async function POST(request: NextRequest) {
         const arrayBuffer = await file.arrayBuffer()
         const fileBuffer = new Uint8Array(arrayBuffer)
 
+        console.log('Starting upload:', {
+          fileName,
+          bufferSize: fileBuffer.length,
+          contentType: file.type
+        })
+
         // Upload to Supabase Storage
         const { data, error } = await supabase.storage
           .from('crack-images')
@@ -53,14 +65,30 @@ export async function POST(request: NextRequest) {
           })
 
         if (error) {
-          console.error('Supabase upload error:', error)
-          return NextResponse.json({ error: `Failed to upload ${file.name}` }, { status: 500 })
+          console.error('Supabase upload error:', {
+            error,
+            fileName,
+            fileSize: file.size,
+            fileType: file.type,
+            bucket: 'crack-images'
+          })
+          return NextResponse.json({ 
+            error: `Failed to upload ${file.name}: ${error.message}`,
+            details: error
+          }, { status: 500 })
         }
 
         // Get public URL
         const { data: publicUrlData } = supabase.storage
           .from('crack-images')
           .getPublicUrl(data.path)
+
+        console.log('File uploaded successfully:', {
+          fileName,
+          originalName: file.name,
+          path: data.path,
+          publicUrl: publicUrlData.publicUrl
+        })
 
         uploadedUrls.push(publicUrlData.publicUrl)
       } catch (uploadError) {
