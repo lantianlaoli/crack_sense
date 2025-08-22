@@ -3,7 +3,7 @@ import { auth } from '@clerk/nextjs/server'
 import { supabase } from '@/lib/supabase'
 
 // GET - Get all conversations for the user
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const { userId } = await auth()
     

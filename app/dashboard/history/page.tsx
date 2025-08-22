@@ -26,7 +26,7 @@ export default function HistoryPage() {
   const [filterRisk, setFilterRisk] = useState('all')
   const [analysisHistory, setAnalysisHistory] = useState<AnalysisHistory[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [, setError] = useState<string | null>(null)
 
   useEffect(() => {
     fetchAnalysisHistory()

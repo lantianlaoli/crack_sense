@@ -3,53 +3,236 @@ import { auth } from '@clerk/nextjs/server'
 import { checkCredits, deductCredits } from '@/lib/credits'
 import { getCreditCost } from '@/lib/constants'
 import { supabase } from '@/lib/supabase'
-import { createGeminiChat, type GeminiModel } from '@/lib/langchain-config'
+import { createGeminiChat } from '@/lib/langchain-config'
 import { HumanMessage, SystemMessage } from '@langchain/core/messages'
+import { getAgentManager, AgentManager } from '@/lib/agents/agent-manager'
 
-// Streaming chat function using LangChain with CrackCheck AI identity
-async function* streamChatWithGemini(message: string, model: 'gemini-2.0-flash' | 'gemini-2.5-flash' = 'gemini-2.0-flash') {
-  const chat = createGeminiChat(model as GeminiModel)
+// Helper function to create general chat response (currently unused)
+/*
+async function* generateGeneralChatResponse(message: string) {
+  const chat = createGeminiChat('gemini-2.0-flash')
   
-  const systemPrompt = `You are CrackCheck AI, a specialized assistant for structural crack analysis and building safety. 
+  const systemPrompt = `You are CrackCheck AI, a specialized assistant for structural crack analysis and building safety assessment.
 
-Key aspects of your identity:
-- Name: CrackCheck AI
-- Expertise: Structural engineering, crack detection, and building safety assessment
-- Mission: Help users assess, understand, and address building crack issues
-- Tone: Professional, knowledgeable, but approachable and helpful
+Your expertise includes:
+- Structural engineering and crack detection
+- Building safety assessment
+- Repair material recommendations
+- DIY vs professional repair guidance
 
-Important guidelines:
-- Always identify yourself as "CrackCheck AI" when asked about your name
-- Even in general conversations, maintain your professional identity as a structural analysis expert
-- When appropriate, relate topics back to building safety, crack prevention, or structural integrity
-- Provide helpful, accurate information while emphasizing the importance of professional consultation for serious structural issues
-- Be encouraging and supportive to users concerned about their property's safety
+Guidelines:
+- Provide helpful, accurate information about crack analysis and repair
+- Emphasize safety first and recommend professional consultation for serious structural issues
+- Be supportive for DIY repairs of low/moderate severity cracks
+- Maintain a professional but approachable tone
+- Focus on practical, actionable advice
 
-Remember: You are not just a general AI - you are specifically designed to help with crack analysis and building safety concerns.`
+Never introduce yourself by name in responses - users already know who they're talking to.`
 
   const systemMessage = new SystemMessage(systemPrompt)
-  const humanMessage = new HumanMessage({
-    content: message
-  })
+  const humanMessage = new HumanMessage({ content: message })
   
-  console.log('LangChain Gemini Streaming Chat Request:', {
-    model,
-    messageLength: message.length
-  })
+  const stream = await chat.stream([systemMessage, humanMessage])
+  
+  for await (const chunk of stream) {
+    if (chunk.content) {
+      yield chunk.content
+    }
+  }
+}
+*/
 
+// Helper function to get intent-specific system prompt
+function getIntentSpecificPrompt(intent: string | null): string {
+  const basePrompt = `You are CrackCheck AI, a specialized assistant for structural crack analysis and building safety assessment.
+
+Your expertise includes:
+- Structural engineering and crack detection
+- Building safety assessment
+- Repair material recommendations
+- DIY vs professional repair guidance
+
+Guidelines:
+- Provide helpful, accurate information about crack analysis and repair
+- Emphasize safety first and recommend professional consultation for serious structural issues
+- Be supportive for DIY repairs of low/moderate severity cracks
+- Maintain a professional but approachable tone
+- Focus on practical, actionable advice
+
+Never introduce yourself by name in responses - users already know who they're talking to.`
+
+  switch (intent) {
+    case 'product_procurement':
+      return basePrompt + `
+
+CONTEXT: The user is asking for material or product recommendations for crack repair.
+
+Your response should:
+- Explain different repair material types and their applications (fillers, sealants, patches, etc.)
+- Discuss when to use different materials based on crack type and location
+- Provide general guidance on material selection criteria
+- Mention that specific product recommendations with prices and ratings will be provided shortly
+- Be educational about the "why" behind material choices
+
+Focus on helping the user understand their options rather than listing specific products.`
+
+    case 'crack_inspection':
+      return basePrompt + `
+
+CONTEXT: The user is asking for crack analysis or inspection guidance.
+
+Your response should:
+- Explain how to assess crack severity and type
+- Discuss signs that indicate professional inspection is needed
+- Provide guidance on monitoring crack progression
+- Mention safety considerations for structural assessment
+- Note that detailed technical analysis tools will provide specific findings
+
+Focus on empowering the user with knowledge while emphasizing safety.`
+
+    case 'repair_recommendation':
+      return basePrompt + `
+
+CONTEXT: The user is seeking repair advice and guidance.
+
+Your response should:
+- Explain general repair approaches for different crack types
+- Discuss DIY vs professional repair decision factors
+- Provide step-by-step thinking for repair planning
+- Mention timing and preparation considerations
+- Note that specific technical guidance will follow
+
+Focus on helping the user understand the repair process and make informed decisions.`
+
+    case 'monitoring_request':
+      return basePrompt + `
+
+CONTEXT: The user wants to monitor cracks over time.
+
+Your response should:
+- Explain the importance of crack monitoring
+- Discuss what changes to look for
+- Suggest monitoring frequency and methods
+- Mention documentation and measurement techniques
+- Note that monitoring tools and systems will be recommended
+
+Focus on helping the user establish an effective monitoring routine.`
+
+    case 'professional_finder':
+      return basePrompt + `
+
+CONTEXT: The user is looking for professional help.
+
+Your response should:
+- Explain when professional consultation is recommended
+- Discuss different types of professionals (structural engineers, contractors, etc.)
+- Mention what to look for in qualified professionals
+- Discuss questions to ask potential contractors
+- Note that professional referral resources will be provided
+
+Focus on helping the user understand their professional service options.`
+
+    default:
+      return basePrompt + `
+
+CONTEXT: General crack-related inquiry.
+
+Your response should:
+- Provide helpful general information about structural cracks
+- Ask clarifying questions if needed to better assist
+- Offer multiple aspects of guidance (analysis, repair, monitoring)
+- Be educational and supportive
+- Note that specialized tools are available for specific needs
+
+Focus on being comprehensively helpful while identifying the user's specific needs.`
+  }
+}
+
+// Streaming chat function with CrackCheck AI priority response
+async function* streamChatWithAgents(
+  message: string, 
+  userId: string,
+  conversationId?: string
+) {
   try {
-    const stream = await chat.stream([systemMessage, humanMessage])
+    const agentManager = getAgentManager()
     
-    for await (const chunk of stream) {
-      if (chunk.content) {
-        yield chunk.content
+    console.log('Processing message with agent system:', message)
+    
+    // Check if we should use agents
+    const shouldUseAgents = AgentManager.shouldUseAgents(message)
+    
+    // Get intent classification if agents will be triggered
+    let detectedIntent: string | null = null
+    if (shouldUseAgents) {
+      // Use the intent classifier to determine the user's intent
+      const { IntentClassifier } = await import('@/lib/agents/intent-classifier')
+      const classifier = new IntentClassifier()
+      try {
+        detectedIntent = await classifier.classifyIntent(message)
+        console.log('Detected intent:', detectedIntent)
+      } catch (intentError) {
+        console.error('Intent classification failed:', intentError)
+        detectedIntent = 'general_chat'
       }
     }
     
-    console.log('LangChain streaming chat completed')
+    // Always start with CrackCheck AI response first
+    yield JSON.stringify({
+      type: 'chat_start'
+    }) + '\n\n'
+    
+    // Generate personalized CrackCheck AI response based on detected intent
+    const aiSystemPrompt = getIntentSpecificPrompt(detectedIntent)
+
+    // Generate CrackCheck AI response with customized prompt
+    const chat = createGeminiChat('gemini-2.0-flash')
+    const systemMessage = new SystemMessage(aiSystemPrompt)
+    const humanMessage = new HumanMessage({ content: message })
+    const stream = await chat.stream([systemMessage, humanMessage])
+    
+    // Stream CrackCheck AI response
+    for await (const chunk of stream) {
+      if (chunk.content) {
+        yield JSON.stringify({
+          type: 'chat_chunk',
+          content: chunk.content
+        }) + '\n\n'
+      }
+    }
+    
+    // If agents should be triggered, process in parallel after AI response
+    if (shouldUseAgents) {
+      console.log('Triggering agent system after AI response')
+      
+      // Process with agent system (this runs after AI response completes)
+      const result = await agentManager.processMessage(message, userId, conversationId)
+      
+      if (result.isAgentTriggered && result.agentResponses.length > 0) {
+        // Yield agent responses
+        for (const response of result.agentResponses) {
+          if (response.status === 'success' && response.data) {
+            yield JSON.stringify({
+              type: 'agent_result',
+              agentType: response.agentType,
+              data: response.data,
+              message: response.message
+            }) + '\n\n'
+          }
+        }
+        
+        // Note: Removed final_response to prevent overwriting CrackCheck AI content
+        // Agent results will be displayed independently via AgentMessage components
+      }
+    }
+    
+    console.log('Chat processing completed')
   } catch (error) {
-    console.error('LangChain streaming chat failed:', error)
-    yield 'Sorry, I encountered an error while processing your message. As CrackCheck AI, I\'m here to help with your structural analysis needs. Please try again.'
+    console.error('Agent system error:', error)
+    yield JSON.stringify({
+      type: 'error',
+      message: 'Sorry, I encountered an error while processing your message. Please try again.'
+    }) + '\n\n'
   }
 }
 
@@ -103,8 +286,12 @@ export async function POST(request: NextRequest) {
           let fullResponse = ''
           
           try {
-            // Stream chat with AI
-            for await (const chunk of streamChatWithGemini(message, model as 'gemini-2.0-flash' | 'gemini-2.5-flash')) {
+            // Stream chat with agent system
+            for await (const chunk of streamChatWithAgents(
+              message,
+              userId,
+              conversationId
+            )) {
               fullResponse += chunk
               
               // Send chunk to client
@@ -141,7 +328,7 @@ export async function POST(request: NextRequest) {
           } catch (error) {
             console.error('Streaming error:', error)
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
-              error: 'Chat failed. As CrackCheck AI, I encountered an issue. Please try again.' 
+              error: 'Chat failed. Please try again.' 
             })}\n\n`))
             controller.close()
           }

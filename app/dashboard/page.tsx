@@ -7,6 +7,9 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import Link from 'next/link'
 import { generatePDFReport, PDFReportData } from '@/lib/pdf-utils'
+import AgentStatusIndicator from '@/components/chat/AgentStatusIndicator'
+import AgentMessage from '@/components/chat/AgentMessage'
+import type { AgentType, AgentStatus, AgentResponse } from '@/lib/agents/types'
 
 export default function Dashboard() {
   const { user } = useUser()
@@ -25,6 +28,11 @@ export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [showPlusMenu, setShowPlusMenu] = useState(false)
   const [showModelDropdown, setShowModelDropdown] = useState(false)
+  
+  // Agent system state
+  const [currentAgent, setCurrentAgent] = useState<AgentType | null>(null)
+  const [agentStatus, setAgentStatus] = useState<AgentStatus>('idle')
+  const [agentResponses, setAgentResponses] = useState<AgentResponse[]>([])
 
   const modelCosts = {
     'gemini-2.0-flash': 200,
@@ -137,6 +145,11 @@ export default function Dashboard() {
       
       setInputValue('')
       setFiles([])
+      
+      // Reset agent state
+      setCurrentAgent(null)
+      setAgentStatus('idle')
+      setAgentResponses([])
 
       // Determine if this is image analysis or text chat
       const hasImages = currentFiles.length > 0
@@ -195,7 +208,7 @@ export default function Dashboard() {
         }
       }
 
-      let remainingCredits
+      // let remainingCredits // currently unused
 
       if (hasImages) {
         // Image Analysis Mode - call /api/analyze
@@ -222,7 +235,7 @@ export default function Dashboard() {
         }
 
         const { analysis, remainingCredits: newCredits } = await analysisResponse.json()
-        remainingCredits = newCredits
+        setCredits(newCredits)
 
         // Add AI analysis response
         const aiMessage = {
@@ -269,10 +282,11 @@ export default function Dashboard() {
 
         setMessages(prev => [...prev, aiMessage])
 
-        // Handle streaming response
+        // Handle streaming response with agent system
         const reader = chatResponse.body?.getReader()
         const decoder = new TextDecoder()
         let fullContent = ''
+        const currentAgentResults: AgentResponse[] = []
 
         if (reader) {
           try {
@@ -288,24 +302,64 @@ export default function Dashboard() {
                   try {
                     const data = JSON.parse(line.slice(6))
                     
+                    // Handle agent system messages
                     if (data.chunk) {
-                      fullContent += data.chunk
-                      // Update message content with streaming text
-                      setMessages(prev => prev.map(msg => 
-                        msg.id === aiMessageId 
-                          ? { ...msg, content: fullContent }
-                          : msg
-                      ))
+                      try {
+                        const agentData = JSON.parse(data.chunk)
+                        
+                        if (agentData.type === 'agent_status') {
+                          setCurrentAgent(agentData.agentType)
+                          setAgentStatus(agentData.status)
+                        } else if (agentData.type === 'agent_result') {
+                          const agentResponse: AgentResponse = {
+                            agentType: agentData.agentType,
+                            status: 'success',
+                            data: agentData.data,
+                            message: agentData.message,
+                            timestamp: new Date()
+                          }
+                          currentAgentResults.push(agentResponse)
+                          setAgentResponses(prev => [...prev, agentResponse])
+                        } else if (agentData.type === 'chat_start') {
+                          // Reset agent state for general chat
+                          setCurrentAgent(null)
+                          setAgentStatus('idle')
+                        } else if (agentData.type === 'chat_chunk') {
+                          fullContent += agentData.content
+                          setMessages(prev => prev.map(msg => 
+                            msg.id === aiMessageId 
+                              ? { ...msg, content: fullContent }
+                              : msg
+                          ))
+                        } else if (agentData.type === 'error') {
+                          throw new Error(agentData.message)
+                        }
+                      } catch {
+                        // Fallback to regular text streaming
+                        fullContent += data.chunk
+                        setMessages(prev => prev.map(msg => 
+                          msg.id === aiMessageId 
+                            ? { ...msg, content: fullContent }
+                            : msg
+                        ))
+                      }
                     }
                     
                     if (data.done) {
                       // Mark streaming as complete and update credits
                       setMessages(prev => prev.map(msg => 
                         msg.id === aiMessageId 
-                          ? { ...msg, streaming: false }
+                          ? { 
+                              ...msg, 
+                              streaming: false,
+                              agentResponses: currentAgentResults.length > 0 ? currentAgentResults : undefined
+                            }
                           : msg
                       ))
                       setCredits(data.remainingCredits)
+                      setCurrentAgent(null)
+                      setAgentStatus('idle')
+                      setAgentResponses([]) // Clear agent responses after saving to message
                       break
                     }
                     
@@ -332,6 +386,8 @@ export default function Dashboard() {
     } finally {
       setIsAnalyzing(false)
       setCurrentProcessingMode(null)
+      setCurrentAgent(null)
+      setAgentStatus('idle')
     }
   }
 
@@ -366,6 +422,40 @@ export default function Dashboard() {
     }
   }
 
+  // Helper function to parse streaming format content
+  const parseStreamingContent = (content: string) => {
+    if (!content) return { content: '', agentResponses: [] }
+    
+    // Split by newlines and parse each JSON chunk
+    const lines = content.split('\n\n')
+    let fullContent = ''
+    const agentResponses: AgentResponse[] = []
+    
+    for (const line of lines) {
+      if (line.trim()) {
+        try {
+          const parsed = JSON.parse(line)
+          if (parsed.type === 'chat_chunk' && parsed.content) {
+            fullContent += parsed.content
+          } else if (parsed.type === 'agent_result') {
+            agentResponses.push({
+              agentType: parsed.agentType,
+              status: 'success',
+              data: parsed.data,
+              message: parsed.message,
+              timestamp: new Date()
+            })
+          }
+          // Note: Removed final_response parsing to prevent AI content from being overwritten
+        } catch {
+          // Skip invalid JSON
+        }
+      }
+    }
+    
+    return { content: fullContent, agentResponses }
+  }
+
   const selectConversation = async (conversation: any) => {
     try {
       setCurrentConversation(conversation)
@@ -375,7 +465,32 @@ export default function Dashboard() {
       const data = await response.json()
       
       if (data.success) {
-        setMessages(data.messages || [])
+        // Process messages to parse streaming content
+        const processedMessages = data.messages.map((msg: any) => {
+          if (msg.message_type === 'assistant' && msg.content) {
+            const parsed = parseStreamingContent(msg.content)
+            return {
+              id: msg.id,
+              type: 'assistant',
+              content: parsed.content,
+              agentResponses: parsed.agentResponses.length > 0 ? parsed.agentResponses : undefined,
+              timestamp: new Date(msg.created_at),
+              streaming: false
+            }
+          } else {
+            return {
+              id: msg.id,
+              type: msg.message_type,
+              content: msg.content,
+              images: msg.images,
+              analysis: msg.analysis_data,
+              timestamp: new Date(msg.created_at),
+              streaming: false
+            }
+          }
+        })
+        
+        setMessages(processedMessages)
       } else {
         console.error('Failed to load conversation messages:', data.error)
         setMessages([])
@@ -666,7 +781,7 @@ export default function Dashboard() {
             </div>
           ) : (
             // Messages
-            <div className="max-w-4xl mx-auto w-full px-4 py-6">
+            <div className="max-w-6xl mx-auto w-full px-4 py-6">
               {messages.map((message) => (
                 <div key={message.id} className="mb-6">
                   {message.type === 'user' ? (
@@ -695,7 +810,7 @@ export default function Dashboard() {
                   ) : (
                     // AI Message
                     <div className="flex justify-start">
-                      <div className="max-w-4xl bg-white border border-gray-200 rounded-2xl p-6">
+                      <div className="max-w-5xl bg-white border border-gray-200 rounded-2xl p-6">
                         
                         {message.analysis ? (
                           // Analysis Response
@@ -786,18 +901,18 @@ export default function Dashboard() {
                             </div>
                           </>
                         ) : (
-                          // Chat Response
+                          // Chat Response  
                           <>
                             <div className="flex items-center gap-2 mb-4">
-                              <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                                <MessageSquare className="w-4 h-4 text-green-600" />
+                              <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                                <MessageSquare className="w-4 h-4 text-gray-600" />
                               </div>
                               <span className="font-medium text-gray-900">CrackCheck AI</span>
                               {message.streaming && (
                                 <div className="flex items-center gap-1">
-                                  <div className="w-1 h-1 bg-green-600 rounded-full animate-pulse"></div>
-                                  <div className="w-1 h-1 bg-green-600 rounded-full animate-pulse" style={{animationDelay: '0.2s'}}></div>
-                                  <div className="w-1 h-1 bg-green-600 rounded-full animate-pulse" style={{animationDelay: '0.4s'}}></div>
+                                  <div className="w-1 h-1 bg-gray-400 rounded-full animate-pulse"></div>
+                                  <div className="w-1 h-1 bg-gray-400 rounded-full animate-pulse" style={{animationDelay: '0.2s'}}></div>
+                                  <div className="w-1 h-1 bg-gray-400 rounded-full animate-pulse" style={{animationDelay: '0.4s'}}></div>
                                 </div>
                               )}
                             </div>
@@ -810,17 +925,17 @@ export default function Dashboard() {
                                     <p className="text-gray-700 mb-3 last:mb-0">
                                       {children}
                                       {message.streaming && (
-                                        <span className="inline-block w-2 h-5 bg-green-600 animate-pulse ml-1"></span>
+                                        <span className="inline-block w-2 h-5 bg-gray-400 animate-pulse ml-1"></span>
                                       )}
                                     </p>
                                   ),
                                   ul: ({ children }) => (
-                                    <ul className="list-disc list-inside space-y-1 text-gray-700 mb-3">
+                                    <ul className="list-disc list-outside space-y-1 text-gray-700 mb-3 pl-4">
                                       {children}
                                     </ul>
                                   ),
                                   li: ({ children }) => (
-                                    <li className="text-gray-700">{children}</li>
+                                    <li className="text-gray-700 pl-1">{children}</li>
                                   ),
                                   strong: ({ children }) => (
                                     <strong className="font-semibold text-gray-900">{children}</strong>
@@ -830,6 +945,13 @@ export default function Dashboard() {
                                 {message.content}
                               </ReactMarkdown>
                             </div>
+                            
+                            {/* Display agent responses if available */}
+                            {message.agentResponses && message.agentResponses.map((response: AgentResponse, idx: number) => (
+                              <div key={`msg-agent-${idx}`} className="mt-6">
+                                <AgentMessage agentResponse={response} />
+                              </div>
+                            ))}
                           </>
                         )}
                       </div>
@@ -838,7 +960,28 @@ export default function Dashboard() {
                 </div>
               ))}
 
-              {isAnalyzing && (
+              {/* Agent Status Indicator */}
+              {currentAgent && agentStatus !== 'idle' && (
+                <div className="mb-6">
+                  <AgentStatusIndicator
+                    agentType={currentAgent}
+                    status={agentStatus}
+                    className="max-w-2xl"
+                  />
+                </div>
+              )}
+              
+              {/* Agent Results */}
+              {agentResponses.map((response, index) => (
+                <div key={`agent-${index}`} className="mb-6">
+                  <AgentMessage
+                    agentResponse={response}
+                    className="max-w-4xl"
+                  />
+                </div>
+              ))}
+
+              {isAnalyzing && !currentAgent && (
                 <div className="flex justify-start mb-6">
                   <div className="max-w-2xl bg-white border border-gray-200 rounded-2xl p-6">
                     <div className="flex items-center gap-2">
@@ -867,7 +1010,7 @@ export default function Dashboard() {
 
         {/* Input Area */}
         <div className="bg-white">
-          <div className="max-w-4xl mx-auto w-full p-6">
+          <div className="max-w-6xl mx-auto w-full p-6">
 
             {/* File Upload Area */}
             {files.length > 0 && (

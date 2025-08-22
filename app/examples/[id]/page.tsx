@@ -3,7 +3,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import Navigation from '@/components/Navigation'
 import Footer from '@/components/Footer'
-import { ArrowLeft, Download, Camera } from 'lucide-react'
+import { ArrowLeft, Camera } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import PDFExportButton from '@/components/PDFExportButton'
 

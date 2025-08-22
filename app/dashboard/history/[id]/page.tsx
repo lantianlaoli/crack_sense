@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, AlertTriangle, CheckCircle, Info, Download, Share, Trash2, Edit } from 'lucide-react'
+import ProductRecommendations from '@/components/ProductRecommendations'
 
 interface Finding {
   id: number
@@ -23,7 +24,7 @@ export default function HistoryDetailPage() {
     id: params.id,
     date: '2024-01-15',
     location: 'Living room wall',
-    riskLevel: 'moderate' as const,
+    riskLevel: 'moderate' as 'low' | 'moderate' | 'high',
     confidence: 87,
     crackCount: 3,
     totalLength: '2.3 meters',
@@ -207,6 +208,18 @@ export default function HistoryDetailPage() {
             >
               Recommendations
             </button>
+            {(analysisData.riskLevel === 'low' || analysisData.riskLevel === 'moderate') && (
+              <button
+                onClick={() => setActiveTab('products')}
+                className={`pb-4 border-b-2 font-medium text-sm ${
+                  activeTab === 'products'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Repair Materials
+              </button>
+            )}
           </nav>
         </div>
 
@@ -290,6 +303,17 @@ export default function HistoryDetailPage() {
                   for cracks larger than 2mm or if you notice rapid progression.
                 </p>
               </div>
+            </div>
+          )}
+
+          {activeTab === 'products' && (
+            <div>
+              <ProductRecommendations
+                analysisId={params.id as string}
+                crackSeverity={analysisData.riskLevel}
+                crackType={analysisData.findings[0]?.type?.toLowerCase().replace(' crack', '')}
+                className="border-0 p-0 bg-transparent"
+              />
             </div>
           )}
         </div>
