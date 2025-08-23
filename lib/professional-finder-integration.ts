@@ -20,14 +20,12 @@ export function shouldTriggerProfessionalFinder(
   category: string
 ): TriggerCondition {
   // 1. 基于风险等级的判断
-  if (analysis.riskLevel === 'high' || analysis.riskLevel === 'critical') {
+  if (analysis.riskLevel === 'high') {
     return {
       shouldTrigger: true,
-      emergencyLevel: analysis.riskLevel === 'critical' ? 'critical' : 'high',
+      emergencyLevel: 'high',
       reason: 'High risk structural issue detected',
-      urgencyMessage: analysis.riskLevel === 'critical' 
-        ? '检测到严重结构问题，建议立即联系专业工程师'
-        : '发现需要专业关注的结构问题，建议尽快联系专业工程师'
+      urgencyMessage: '发现需要专业关注的结构问题，建议尽快联系专业工程师'
     }
   }
 
@@ -80,7 +78,7 @@ export function shouldTriggerProfessionalFinder(
   // 5. 基于裂痕数量和范围的判断
   if (analysis.crackCount >= 3) {
     const hasMultipleTypes = analysis.findings.some(finding => 
-      finding.severity === 'High' || finding.severity === 'Severe'
+      finding.severity === 'High'
     )
 
     if (hasMultipleTypes) {

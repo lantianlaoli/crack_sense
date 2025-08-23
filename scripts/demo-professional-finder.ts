@@ -8,7 +8,7 @@
  * 4. 结果展示
  */
 
-import { createClient } from '../lib/supabase'
+import { supabase } from '../lib/supabase'
 import { professionalFinderAgent } from '../lib/professional-finder-agent'
 import { shouldTriggerProfessionalFinder, generateProfessionalFinderMessage, extractLocationInfo } from '../lib/professional-finder-integration'
 
@@ -126,7 +126,7 @@ const demoProfessionals = [
 ]
 
 class ProfessionalFinderDemo {
-  private supabase = createClient()
+  private supabase = supabase
 
   async runDemo(): Promise<void> {
     console.log('🎯 Professional Finder Agent演示')
