@@ -271,16 +271,18 @@ export class SimpleAgentCoordinator {
 
       // Generate search parameters for professional search
       const searchParams = generateSearchParams(
-        { emergencyLevel: 'medium', shouldTrigger: true, reason: 'User requested professional help' },
+        { 
+          emergencyLevel: 'medium', 
+          shouldTrigger: true, 
+          reason: 'User requested professional help',
+          urgencyMessage: '用户主动请求专业帮助'
+        },
         locationInfo
       )
 
       // Search for professionals
-      console.log('Searching professionals with params:', { zipCode: locationInfo.zipCode, ...searchParams })
-      const professionals = await professionalFinderAgent.searchProfessionals({
-        zipCode: locationInfo.zipCode!,
-        ...searchParams
-      })
+      console.log('Searching professionals with params:', searchParams)
+      const professionals = await professionalFinderAgent.searchProfessionals(searchParams)
       console.log('Found professionals:', professionals.length, professionals)
 
       const professionalFinderData = {
@@ -288,10 +290,7 @@ export class SimpleAgentCoordinator {
         emergencyLevel: 'medium',
         message: 'Based on your request, I found local structural engineers who can help you:',
         professionals: professionals.slice(0, 5),
-        searchParams: {
-          zipCode: locationInfo.zipCode,
-          ...searchParams
-        },
+        searchParams: searchParams,
         autoSearched: true,
         location: {
           zipCode: locationInfo.zipCode,

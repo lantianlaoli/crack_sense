@@ -231,20 +231,14 @@ export async function POST(request: NextRequest) {
         if (locationInfo.zipCode) {
           try {
             const searchParams = generateSearchParams(triggerCondition, locationInfo)
-            const professionals = await professionalFinderAgent.searchProfessionals({
-              zipCode: locationInfo.zipCode,
-              ...searchParams
-            })
+            const professionals = await professionalFinderAgent.searchProfessionals(searchParams)
             
             professionalFinderData = {
               shouldShow: true,
               emergencyLevel: triggerCondition.emergencyLevel,
               message: professionalMessage,
               professionals: professionals.slice(0, 3), // 只显示前3个
-              searchParams: {
-                zipCode: locationInfo.zipCode,
-                ...searchParams
-              },
+              searchParams: searchParams,
               autoSearched: true
             }
           } catch (error) {
