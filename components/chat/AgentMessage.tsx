@@ -5,9 +5,11 @@ import {
   ExclamationTriangleIcon,
   CheckCircleIcon,
   WrenchIcon,
-  ShoppingCartIcon
+  ShoppingCartIcon,
+  UserGroupIcon
 } from '@heroicons/react/24/outline'
 import type { AgentResponse, InspectionResult, RecommendationResult, ProcurementResult } from '@/lib/agents/types'
+import ProfessionalFinder from '@/components/ProfessionalFinder'
 
 interface AgentMessageProps {
   agentResponse: AgentResponse
@@ -58,6 +60,10 @@ export default function AgentMessage({ agentResponse, className = '' }: AgentMes
         
         {agentType === 'procurement' && data && (
           <ProcurementResultDisplay result={data as ProcurementResult} />
+        )}
+        
+        {agentType === 'professional_finder' && data && (
+          <ProfessionalFinderResultDisplay data={data as any} />
         )}
       </div>
     </div>
@@ -242,13 +248,71 @@ function ProcurementResultDisplay({ result }: { result: ProcurementResult }) {
   )
 }
 
+function ProfessionalFinderResultDisplay({ data }: { data: any }) {
+  if (data.requiresLocation) {
+    return (
+      <div className="space-y-3">
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-start space-x-3">
+            <UserGroupIcon className="w-5 h-5 text-blue-600 mt-0.5" />
+            <div>
+              <h5 className="text-sm font-medium text-blue-900">Location Required</h5>
+              <p className="text-sm text-blue-700 mt-1">{data.message}</p>
+            </div>
+          </div>
+        </div>
+        
+        {data.examples && data.examples.length > 0 && (
+          <div className="bg-gray-50 rounded-lg p-3">
+            <h6 className="text-xs font-medium text-gray-700 uppercase tracking-wide mb-2">Examples:</h6>
+            <ul className="space-y-1">
+              {data.examples.map((example: string, index: number) => (
+                <li key={index} className="text-sm text-gray-600 flex items-start space-x-2">
+                  <span className="text-gray-400">•</span>
+                  <span>&quot;{example}&quot;</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  if (data.professionals && data.professionals.length > 0) {
+    return (
+      <div className="space-y-3">
+        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+          <p className="text-sm text-green-800">{data.message}</p>
+        </div>
+        
+        <ProfessionalFinder 
+          shouldShow={data.shouldShow}
+          emergencyLevel={data.emergencyLevel}
+          message={data.message}
+          professionals={data.professionals}
+          searchParams={data.searchParams}
+          autoSearched={data.autoSearched}
+          location={data.location}
+        />
+      </div>
+    )
+  }
+
+  return (
+    <div className="bg-gray-50 rounded-lg p-4">
+      <p className="text-sm text-gray-600">Professional finder ready to help when needed.</p>
+    </div>
+  )
+}
+
 function getAgentDisplayName(agentType: string): string {
   switch (agentType) {
     case 'inspection': return 'Inspection Agent'
     case 'recommendation': return 'Recommendation Agent'
     case 'procurement': return 'Procurement Agent'
     case 'monitoring': return 'Monitoring Agent'
-    case 'professional_finder': return 'Professional Finder Agent'
+    case 'professional_finder': return 'Professional Finder'
     default: return 'AI Assistant'
   }
 }
@@ -262,6 +326,8 @@ function getAgentIcon(agentType: string) {
       return <WrenchIcon className="w-4 h-4 text-gray-600" />
     case 'procurement':
       return <ShoppingCartIcon className="w-4 h-4 text-gray-600" />
+    case 'professional_finder':
+      return <UserGroupIcon className="w-4 h-4 text-gray-600" />
     default:
       return <CheckCircleIcon className="w-4 h-4 text-gray-600" />
   }

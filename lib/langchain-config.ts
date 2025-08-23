@@ -26,8 +26,8 @@ export function createGeminiChat(model: GeminiModel) {
     configuration: {
       baseURL: "https://openrouter.ai/api/v1",
       defaultHeaders: {
-        "HTTP-Referer": "https://crackcheck.com",
-        "X-Title": "CrackCheck AI Analysis"
+        "HTTP-Referer": "https://cracksense.com",
+        "X-Title": "CrackSense AI Analysis"
       }
     }
   })

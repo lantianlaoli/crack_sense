@@ -26,7 +26,7 @@ export default async function ExamplesPreview() {
         {/* Header */}
         <div className="text-center mb-12">
           <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-            Examples
+            Example
           </h2>
           <p className="text-lg text-gray-600 max-w-3xl mx-auto leading-relaxed">
             See how our AI analyzes real wall cracks from different homes. Each case shows detailed risk assessment and repair recommendations from our expert system.
@@ -54,7 +54,7 @@ export default async function ExamplesPreview() {
             href="/examples"
             className="inline-flex items-center gap-2 bg-black text-white px-8 py-4 rounded-xl font-semibold hover:bg-gray-800 transition-colors group"
           >
-            View All Examples
+            View All Example
             <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>

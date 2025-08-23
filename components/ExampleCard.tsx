@@ -21,7 +21,7 @@ export default function ExampleCard({ crack }: ExampleCardProps) {
   const previewImage = crack.image_urls[0] || '/images/placeholder-crack.jpg'
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden group">
+    <div className="bg-gray-50 rounded-2xl border border-gray-200 overflow-hidden group">
       {/* Risk Level Badge */}
       <div className="p-6 pb-4">
         <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border shadow-sm ${

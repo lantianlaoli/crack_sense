@@ -12,7 +12,7 @@ import { getAgentManager, AgentManager } from '@/lib/agents/agent-manager'
 async function* generateGeneralChatResponse(message: string) {
   const chat = createGeminiChat('gemini-2.0-flash')
   
-  const systemPrompt = `You are CrackCheck AI, a specialized assistant for structural crack analysis and building safety assessment.
+  const systemPrompt = `You are CrackSense AI, a specialized assistant for structural crack analysis and building safety assessment.
 
 Your expertise includes:
 - Structural engineering and crack detection
@@ -44,7 +44,7 @@ Never introduce yourself by name in responses - users already know who they're t
 
 // Helper function to get intent-specific system prompt
 function getIntentSpecificPrompt(intent: string | null): string {
-  const basePrompt = `You are CrackCheck AI, a specialized assistant for structural crack analysis and building safety assessment.
+  const basePrompt = `You are CrackSense AI, a specialized assistant for structural crack analysis and building safety assessment.
 
 Your expertise includes:
 - Structural engineering and crack detection

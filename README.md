@@ -1,3 +1,3 @@
-# crack_check
+# CrackSense
 
-A Next.js application for crack detection and analysis.
+A Next.js application for intelligent crack detection and analysis.

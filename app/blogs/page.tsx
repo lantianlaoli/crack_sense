@@ -34,11 +34,11 @@ export default async function BlogsPage() {
         <div className="mx-auto px-8 lg:px-12 w-full min-w-[900px] lg:min-w-[1100px] max-w-[1200px]">
           <div className="text-center">
             <h1 className="text-5xl lg:text-6xl font-bold text-black leading-tight mb-8">
-              Thoughts on CrackCheck
+              Thoughts on CrackSense
             </h1>
             
             <p className="text-lg text-gray-600 leading-relaxed max-w-3xl mx-auto">
-              Explore CrackCheck in-depth guides, curated templates, and practical tips to help you plan 
+              Explore CrackSense in-depth guides, curated templates, and practical tips to help you plan 
               smarter, stay organized, and build systems that truly work for your lifestyle.
             </p>
           </div>

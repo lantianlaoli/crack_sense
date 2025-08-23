@@ -11,12 +11,12 @@ export default function Footer() {
             <div className="flex items-center gap-2 mb-4">
               <Image
                 src="/logo.png"
-                alt="CrackCheck Logo"
+                alt="CrackSense Logo"
                 width={24}
                 height={24}
                 className="w-6 h-6"
               />
-              <span className="text-lg font-bold text-gray-900">CrackCheck</span>
+              <span className="text-lg font-bold text-gray-900">CrackSense</span>
             </div>
             <p className="text-gray-600 text-sm max-w-md">
               Get organized and productive with AI-powered crack analysis. 
@@ -43,7 +43,15 @@ export default function Footer() {
         <div className="border-t border-gray-200 mt-8 pt-6">
           <div className="flex flex-col md:flex-row justify-between items-center gap-2 text-sm text-gray-600">
             <span>© Copyright 2025. All Rights Reserved.</span>
-            <span>Made with <span className="text-red-500">❤️</span> by lantianlaoli</span>
+            <div className="flex items-center gap-6">
+              <Link href="/terms" className="hover:text-gray-900 transition-colors">
+                Terms
+              </Link>
+              <Link href="/privacy" className="hover:text-gray-900 transition-colors">
+                Privacy
+              </Link>
+              <span>Made with <span className="text-red-500">❤️</span> by lantianlaoli</span>
+            </div>
           </div>
         </div>
       </div>

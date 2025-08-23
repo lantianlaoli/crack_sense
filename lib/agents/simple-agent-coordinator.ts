@@ -2,6 +2,8 @@ import { IntentClassifier } from './intent-classifier'
 import { InspectionAgent } from './inspection-agent'
 import { RecommendationAgent } from './recommendation-agent'
 import { ProcurementAgent } from './procurement-agent'
+import { professionalFinderAgent } from '../professional-finder-agent'
+import { extractLocationInfo, generateSearchParams } from '../professional-finder-integration'
 import type { AgentResponse } from './types'
 
 export class SimpleAgentCoordinator {
@@ -46,6 +48,9 @@ export class SimpleAgentCoordinator {
           
         case 'product_procurement':
           return await this.handleProcurementFlow(message, userId, agentResponses, conversationId)
+          
+        case 'professional_finder':
+          return await this.handleProfessionalFinderFlow(message, userId, agentResponses, conversationId)
           
         case 'general_chat':
         default:
@@ -225,6 +230,100 @@ export class SimpleAgentCoordinator {
     }
   }
 
+  private async handleProfessionalFinderFlow(
+    message: string,
+    userId: string,
+    agentResponses: AgentResponse[],
+    conversationId?: string
+  ) {
+    try {
+      // Extract location information from message
+      const locationInfo = extractLocationInfo(message)
+      console.log('Location extraction result:', locationInfo, 'for message:', message)
+      
+      if (!locationInfo.hasLocation) {
+        // Return guidance on how to get location-based help
+        const guidance = {
+          message: 'I can help you find local structural engineers! To provide the most relevant professionals in your area, could you please share your location (city, state, or zip code)?',
+          requiresLocation: true,
+          examples: [
+            'I live in Manhattan, New York',
+            'Located in 10001',
+            'My house is in Los Angeles, CA'
+          ]
+        }
+        
+        agentResponses.push({
+          agentType: 'professional_finder',
+          status: 'success',
+          data: guidance,
+          message: 'Location guidance provided',
+          timestamp: new Date()
+        })
+
+        return {
+          isAgentTriggered: true,
+          finalResponse: this.generateFinalResponse(agentResponses),
+          agentResponses,
+          errors: []
+        }
+      }
+
+      // Generate search parameters for professional search
+      const searchParams = generateSearchParams(
+        { emergencyLevel: 'medium', shouldTrigger: true, reason: 'User requested professional help' },
+        locationInfo
+      )
+
+      // Search for professionals
+      console.log('Searching professionals with params:', { zipCode: locationInfo.zipCode, ...searchParams })
+      const professionals = await professionalFinderAgent.searchProfessionals({
+        zipCode: locationInfo.zipCode!,
+        ...searchParams
+      })
+      console.log('Found professionals:', professionals.length, professionals)
+
+      const professionalFinderData = {
+        shouldShow: true,
+        emergencyLevel: 'medium',
+        message: 'Based on your request, I found local structural engineers who can help you:',
+        professionals: professionals.slice(0, 5),
+        searchParams: {
+          zipCode: locationInfo.zipCode,
+          ...searchParams
+        },
+        autoSearched: true,
+        location: {
+          zipCode: locationInfo.zipCode,
+          hasLocation: true
+        }
+      }
+      
+      agentResponses.push({
+        agentType: 'professional_finder',
+        status: 'success',
+        data: professionalFinderData,
+        message: `Found ${professionals.length} local professionals`,
+        timestamp: new Date()
+      })
+
+      return {
+        isAgentTriggered: true,
+        finalResponse: this.generateFinalResponse(agentResponses),
+        agentResponses,
+        errors: []
+      }
+
+    } catch (error) {
+      console.error('Professional finder flow error:', error)
+      return {
+        isAgentTriggered: false,
+        agentResponses: [],
+        errors: ['Professional finder failed']
+      }
+    }
+  }
+
   private generateFinalResponse(agentResponses: AgentResponse[]): string {
     let response = ''
     
@@ -251,6 +350,19 @@ export class SimpleAgentCoordinator {
           if (agentResponse.data) {
             response += `## Product Recommendations\n\n`
             response += `Found ${agentResponse.data.totalRecommendations} suitable products in ${agentResponse.data.category}.\n\n`
+          }
+          break
+          
+        case 'professional_finder':
+          if (agentResponse.data) {
+            if (agentResponse.data.requiresLocation) {
+              response += `## Professional Help Available\n\n`
+              response += `${agentResponse.data.message}\n\n`
+            } else if (agentResponse.data.professionals && agentResponse.data.professionals.length > 0) {
+              response += `## Local Structural Engineers\n\n`
+              response += `${agentResponse.data.message}\n\n`
+              response += `Found ${agentResponse.data.professionals.length} qualified professionals in your area.\n\n`
+            }
           }
           break
       }

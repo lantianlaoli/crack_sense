@@ -539,7 +539,7 @@ export default function Dashboard() {
                 <div className="w-8 h-8 bg-gray-900 rounded-md flex items-center justify-center">
                   <Zap className="w-5 h-5 text-white" />
                 </div>
-                <h1 className="text-lg font-semibold text-gray-900">CrackCheck</h1>
+                <h1 className="text-lg font-semibold text-gray-900">CrackSense</h1>
               </div>
             )}
             {!sidebarOpen && (
@@ -907,7 +907,7 @@ export default function Dashboard() {
                               <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
                                 <MessageSquare className="w-4 h-4 text-gray-600" />
                               </div>
-                              <span className="font-medium text-gray-900">CrackCheck AI</span>
+                              <span className="font-medium text-gray-900">CrackSense AI</span>
                               {message.streaming && (
                                 <div className="flex items-center gap-1">
                                   <div className="w-1 h-1 bg-gray-400 rounded-full animate-pulse"></div>

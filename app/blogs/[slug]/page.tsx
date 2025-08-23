@@ -56,13 +56,13 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
   if (!article) {
     return {
-      title: 'Article Not Found - CrackCheck Blogs',
+      title: 'Article Not Found - CrackSense Blogs',
       description: 'The requested article could not be found.'
     }
   }
 
   return {
-    title: `${article.title} - CrackCheck Blogs`,
+    title: `${article.title} - CrackSense Blogs`,
     description: article.content.substring(0, 160) + '...',
     openGraph: {
       title: article.title,

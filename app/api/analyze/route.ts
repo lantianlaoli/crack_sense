@@ -6,6 +6,8 @@ import { supabase } from '@/lib/supabase'
 import { getCrackCauseTemplates, categorizeCrackAnalysis, generatePersonalizedRecommendations, saveCrackAnalysis } from '@/lib/crack-analysis-utils'
 import { createStructuredGeminiChat, type GeminiModel, type CrackAnalysis } from '@/lib/langchain-config'
 import { HumanMessage } from '@langchain/core/messages'
+import { shouldTriggerProfessionalFinder, generateProfessionalFinderMessage, extractLocationInfo, generateSearchParams } from '@/lib/professional-finder-integration'
+import { professionalFinderAgent } from '@/lib/professional-finder-agent'
 
 // LangChain Gemini analysis function
 async function analyzeImages(imageUrls: string[], description?: string, additionalInfo?: string, model: 'gemini-2.0-flash' | 'gemini-2.5-flash' = 'gemini-2.0-flash'): Promise<CrackAnalysis> {
@@ -215,6 +217,61 @@ export async function POST(request: NextRequest) {
           ])
       }
 
+      // Check if Professional Finder should be triggered
+      const triggerCondition = shouldTriggerProfessionalFinder(analysisResults, severity, category)
+      const locationInfo = extractLocationInfo(description, additionalInfo)
+      
+      let professionalFinderData = null
+      
+      if (triggerCondition.shouldTrigger) {
+        // Generate Professional Finder message
+        const professionalMessage = generateProfessionalFinderMessage(triggerCondition, locationInfo.hasLocation)
+        
+        // If we have location info, automatically search for professionals
+        if (locationInfo.zipCode) {
+          try {
+            const searchParams = generateSearchParams(triggerCondition, locationInfo)
+            const professionals = await professionalFinderAgent.searchProfessionals({
+              zipCode: locationInfo.zipCode,
+              ...searchParams
+            })
+            
+            professionalFinderData = {
+              shouldShow: true,
+              emergencyLevel: triggerCondition.emergencyLevel,
+              message: professionalMessage,
+              professionals: professionals.slice(0, 3), // 只显示前3个
+              searchParams: {
+                zipCode: locationInfo.zipCode,
+                ...searchParams
+              },
+              autoSearched: true
+            }
+          } catch (error) {
+            console.error('Professional search failed:', error)
+            // Still show the finder UI even if search fails
+            professionalFinderData = {
+              shouldShow: true,
+              emergencyLevel: triggerCondition.emergencyLevel,
+              message: professionalMessage,
+              professionals: [],
+              autoSearched: false,
+              searchError: 'Failed to automatically search for professionals'
+            }
+          }
+        } else {
+          // Show finder UI but require manual search
+          professionalFinderData = {
+            shouldShow: true,
+            emergencyLevel: triggerCondition.emergencyLevel,
+            message: professionalMessage,
+            professionals: [],
+            autoSearched: false,
+            requiresZipCode: true
+          }
+        }
+      }
+
       return NextResponse.json({
         success: true,
         analysis: analysisResults,
@@ -230,6 +287,7 @@ export async function POST(request: NextRequest) {
           personalizedRecommendations: recommendations,
           analysisId
         },
+        professionalFinder: professionalFinderData,
         crack: crack,
         creditsUsed: requiredCredits,
         remainingCredits: deductResult.remainingCredits

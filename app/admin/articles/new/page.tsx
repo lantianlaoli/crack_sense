@@ -5,7 +5,7 @@ export default function NewArticlePage() {
     <div className="p-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Create New Article</h1>
-        <p className="text-gray-600 mt-2">Write a new blog post for CrackCheck</p>
+        <p className="text-gray-600 mt-2">Write a new blog post for CrackSense</p>
       </div>
 
       <div className="bg-white rounded-lg border border-gray-200 p-6">

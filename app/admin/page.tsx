@@ -29,7 +29,7 @@ export default async function AdminDashboard() {
     <div className="p-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600 mt-2">Welcome to the CrackCheck admin panel</p>
+        <p className="text-gray-600 mt-2">Welcome to the CrackSense admin panel</p>
       </div>
 
       {/* Stats Cards */}

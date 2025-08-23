@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
         'Accept-Encoding': 'gzip, deflate, br',
         'Connection': 'keep-alive',
         'Content-Type': 'application/json',
-        'User-Agent': 'CrackCheckApp/1.0.0',
+        'User-Agent': 'CrackSenseApp/1.0.0',
         'x-api-key': apiKey,
       },
       body: JSON.stringify({

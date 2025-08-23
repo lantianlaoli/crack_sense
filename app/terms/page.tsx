@@ -19,12 +19,12 @@ export default function TermsPage() {
 
             <h2 className="text-2xl font-semibold text-gray-900 mt-8 mb-4">1. Acceptance of Terms</h2>
             <p>
-              By accessing and using CrackCheck, you accept and agree to be bound by the terms and provision of this agreement.
+              By accessing and using CrackSense, you accept and agree to be bound by the terms and provision of this agreement.
             </p>
 
             <h2 className="text-2xl font-semibold text-gray-900 mt-8 mb-4">2. Service Description</h2>
             <p>
-              CrackCheck provides AI-powered wall crack analysis services. Our platform analyzes uploaded images and provides risk assessments and repair recommendations.
+              CrackSense provides AI-powered wall crack analysis services. Our platform analyzes uploaded images and provides risk assessments and repair recommendations.
             </p>
 
             <h2 className="text-2xl font-semibold text-gray-900 mt-8 mb-4">3. User Responsibilities</h2>
@@ -34,12 +34,12 @@ export default function TermsPage() {
 
             <h2 className="text-2xl font-semibold text-gray-900 mt-8 mb-4">4. Disclaimer</h2>
             <p>
-              The analysis provided by CrackCheck is for informational purposes only. For structural concerns, always consult with a qualified professional.
+              The analysis provided by CrackSense is for informational purposes only. For structural concerns, always consult with a qualified professional.
             </p>
 
             <h2 className="text-2xl font-semibold text-gray-900 mt-8 mb-4">5. Limitation of Liability</h2>
             <p>
-              CrackCheck shall not be liable for any direct, indirect, incidental, or consequential damages arising from the use of our service.
+              CrackSense shall not be liable for any direct, indirect, incidental, or consequential damages arising from the use of our service.
             </p>
 
             <h2 className="text-2xl font-semibold text-gray-900 mt-8 mb-4">6. Changes to Terms</h2>

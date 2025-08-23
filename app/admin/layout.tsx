@@ -16,7 +16,7 @@ export default function AdminLayout({
               <div className="w-8 h-8 bg-lime-400 rounded-lg flex items-center justify-center">
                 <div className="w-4 h-4 bg-black rounded-sm"></div>
               </div>
-              <span className="text-xl font-bold text-gray-900">CrackCheck</span>
+              <span className="text-xl font-bold text-gray-900">CrackSense</span>
             </Link>
 
             <nav className="space-y-2">
