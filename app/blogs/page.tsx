@@ -1,7 +1,34 @@
+import { Metadata } from 'next'
 import Navigation from '@/components/Navigation'
 import ArticleCard from '@/components/ArticleCard'
 import Footer from '@/components/Footer'
+import StructuredData from '@/components/StructuredData'
 import { supabase, Article } from '@/lib/supabase'
+
+export const metadata: Metadata = {
+  title: 'Blog - Expert Insights on Crack Analysis & Building Safety',
+  description: 'Expert articles, guides, and insights on crack analysis, building inspection, structural safety, and home maintenance. Learn from professionals about identifying and addressing wall cracks.',
+  keywords: ['crack analysis blog', 'building inspection guides', 'structural safety articles', 'home maintenance', 'crack detection tips', 'building safety'],
+  openGraph: {
+    title: 'CrackSense Blog - Expert Building Safety Insights',
+    description: 'Professional articles and guides on crack analysis, building inspection, and structural safety.',
+    type: 'website',
+    images: [
+      {
+        url: '/blog-og-image.jpg',
+        width: 1200,
+        height: 630,
+        alt: 'CrackSense Blog - Expert Building Safety Insights',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'CrackSense Blog - Expert Building Safety Insights',
+    description: 'Professional articles and guides on crack analysis, building inspection, and structural safety.',
+    images: ['/blog-twitter-image.jpg'],
+  },
+}
 
 async function getArticles(): Promise<Article[]> {
   try {
@@ -27,6 +54,32 @@ export default async function BlogsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
+      <StructuredData 
+        type="website" 
+        data={{
+          '@type': 'Blog',
+          name: 'CrackSense Blog',
+          description: 'Expert articles and insights on crack analysis, building inspection, and structural safety',
+          url: 'https://www.cracksense.online/blogs',
+          publisher: {
+            '@type': 'Organization',
+            name: 'CrackSense',
+            url: 'https://www.cracksense.online'
+          },
+          blogPosts: articles.map(article => ({
+            '@type': 'BlogPosting',
+            headline: article.title,
+            description: article.excerpt || '',
+            url: `https://www.cracksense.online/blogs/${article.slug}`,
+            datePublished: article.created_at,
+            dateModified: article.updated_at || article.created_at,
+            author: {
+              '@type': 'Organization',
+              name: 'CrackSense Team'
+            }
+          }))
+        }}
+      />
       <Navigation />
       
       {/* Hero Section */}

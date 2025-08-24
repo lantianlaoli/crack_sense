@@ -12,7 +12,9 @@ export interface Article {
   slug: string
   content: string
   created_at: string
+  updated_at?: string
   thumbnail?: string
+  excerpt?: string
 }
 
 // Database types for cracks table (extended for conversation support)
