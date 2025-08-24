@@ -21,19 +21,5 @@
       "purpose": "maskable any"
     }
   ],
-  "categories": ["productivity", "utilities", "business"],
-  "screenshots": [
-    {
-      "src": "/screenshot-wide.png",
-      "sizes": "1280x720",
-      "type": "image/png",
-      "form_factor": "wide"
-    },
-    {
-      "src": "/screenshot-narrow.png",
-      "sizes": "640x1280", 
-      "type": "image/png",
-      "form_factor": "narrow"
-    }
-  ]
+  "categories": ["productivity", "utilities", "business"]
 }
