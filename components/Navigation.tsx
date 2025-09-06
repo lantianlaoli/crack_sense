@@ -43,15 +43,19 @@ export default function Navigation() {
             </div>
           </div>
 
-          {/* Navigation Links */}
-          <div className="hidden md:flex items-center justify-center flex-1 mr-8">
-            {/* Removed middle navigation links, now empty */}
-          </div>
+          {/* Spacer */}
+          <div className="flex-1"></div>
 
           {/* CTA Buttons and Navigation Links */}
           <div className="flex items-center gap-6 flex-1 justify-end">
             {/* Navigation Links */}
             <div className="hidden md:flex items-center space-x-8">
+              <Link href="/blog" className="text-gray-700 hover:text-gray-900 font-medium">
+                Blog
+              </Link>
+              <Link href="/examples" className="text-gray-700 hover:text-gray-900 font-medium">
+                Examples
+              </Link>
               <Link href="/pricing" className="text-gray-700 hover:text-gray-900 font-medium">
                 Pricing
               </Link>

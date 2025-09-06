@@ -3,6 +3,7 @@ import Hero from '@/components/Hero'
 import Pricing from '@/components/Pricing'
 import Footer from '@/components/Footer'
 import StructuredData from '@/components/StructuredData'
+import FAQ from '@/components/FAQ'
 
 export default function Home() {
   return (
@@ -37,6 +38,7 @@ export default function Home() {
       />
       <Navigation />
       <Hero />
+      <FAQ />
       <Pricing />
       <Footer />
     </main>
