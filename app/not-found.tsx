@@ -58,12 +58,6 @@ export default function NotFound() {
               >
                 View Examples
               </Link>
-              <Link 
-                href="/blogs" 
-                className="text-blue-600 hover:text-blue-500 hover:underline"
-              >
-                Read Our Blog
-              </Link>
             </div>
           </div>
         </div>

@@ -34,32 +34,26 @@ export default function Navigation() {
                 <Image
                   src="/logo.png"
                   alt="CrackSense Logo"
-                  width={32}
-                  height={32}
-                  className="w-8 h-8"
+                  width={48}
+                  height={48}
+                  className="w-12 h-12"
                 />
-                <span className="text-xl font-bold text-gray-900">CrackSense</span>
+                <span className="text-2xl font-bold text-gray-900">CrackSense</span>
               </Link>
             </div>
           </div>
 
           {/* Navigation Links */}
           <div className="hidden md:flex items-center justify-center flex-1 mr-8">
-            {/* 移除中间的导航链接，现在为空 */}
+            {/* Removed middle navigation links, now empty */}
           </div>
 
           {/* CTA Buttons and Navigation Links */}
           <div className="flex items-center gap-6 flex-1 justify-end">
             {/* Navigation Links */}
             <div className="hidden md:flex items-center space-x-8">
-              <Link href="/" className="text-gray-700 hover:text-gray-900 font-medium">
-                Home
-              </Link>
-              <Link href="/examples" className="text-gray-700 hover:text-gray-900 font-medium">
-                Example
-              </Link>
-              <Link href="/blogs" className="text-gray-700 hover:text-gray-900 font-medium">
-                Blog
+              <Link href="/pricing" className="text-gray-700 hover:text-gray-900 font-medium">
+                Pricing
               </Link>
             </div>
 

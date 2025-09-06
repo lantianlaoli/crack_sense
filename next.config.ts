@@ -19,6 +19,18 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'mperrwywxrkmqsglgvhw.supabase.co',
       },
+      {
+        protocol: 'https',
+        hostname: 'example.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'm.media-amazon.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'tempfile.aiquickdraw.com',
+      },
     ],
     formats: ['image/webp', 'image/avif'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],

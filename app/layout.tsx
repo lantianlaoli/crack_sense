@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 import { ClerkProvider } from '@clerk/nextjs'
 import { UserInitializer } from '@/components/UserInitializer'
-import AdminButton from '@/components/AdminButton'
 import GoogleAnalytics from '@/components/GoogleAnalytics'
 import './globals.css'
 
@@ -68,11 +67,10 @@ export default function RootLayout({
 }) {
   return (
     <ClerkProvider>
-      <html lang="en">
+      <html lang="en" suppressHydrationWarning>
         <body>
           <GoogleAnalytics trackingId={process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS_ID || ''} />
           <UserInitializer />
-          <AdminButton />
           {children}
         </body>
       </html>

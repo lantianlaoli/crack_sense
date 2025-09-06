@@ -3,9 +3,6 @@ import { auth } from '@clerk/nextjs/server'
 import { checkCredits, deductCredits } from '@/lib/credits'
 import { getCreditCost } from '@/lib/constants'
 import { supabase } from '@/lib/supabase'
-import { createGeminiChat } from '@/lib/langchain-config'
-import { HumanMessage, SystemMessage } from '@langchain/core/messages'
-import { getAgentManager, AgentManager } from '@/lib/agents/agent-manager'
 
 // Helper function to create general chat response (currently unused)
 /*
@@ -149,86 +146,31 @@ Focus on being comprehensively helpful while identifying the user's specific nee
 }
 
 // Streaming chat function with CrackCheck AI priority response
-async function* streamChatWithAgents(
+// Simple chat function without complex agent system
+async function* streamChat(
   message: string, 
-  userId: string,
-  conversationId?: string
+  _userId: string,
+  _conversationId?: string
 ) {
   try {
-    const agentManager = getAgentManager()
+    console.log('Processing chat message:', message)
     
-    console.log('Processing message with agent system:', message)
-    
-    // Check if we should use agents
-    const shouldUseAgents = AgentManager.shouldUseAgents(message)
-    
-    // Get intent classification if agents will be triggered
-    let detectedIntent: string | null = null
-    if (shouldUseAgents) {
-      // Use the intent classifier to determine the user's intent
-      const { IntentClassifier } = await import('@/lib/agents/intent-classifier')
-      const classifier = new IntentClassifier()
-      try {
-        detectedIntent = await classifier.classifyIntent(message)
-        console.log('Detected intent:', detectedIntent)
-      } catch (intentError) {
-        console.error('Intent classification failed:', intentError)
-        detectedIntent = 'general_chat'
-      }
-    }
-    
-    // Always start with CrackCheck AI response first
+    // Always start with chat start signal
     yield JSON.stringify({
       type: 'chat_start'
     }) + '\n\n'
     
-    // Generate personalized CrackCheck AI response based on detected intent
-    const aiSystemPrompt = getIntentSpecificPrompt(detectedIntent)
-
-    // Generate CrackCheck AI response with customized prompt
-    const chat = createGeminiChat('gemini-2.0-flash')
-    const systemMessage = new SystemMessage(aiSystemPrompt)
-    const humanMessage = new HumanMessage({ content: message })
-    const stream = await chat.stream([systemMessage, humanMessage])
+    // For now, provide a simple response
+    const response = `Based on your message: "${message}", I'm here to help with crack analysis and structural concerns. While the advanced chat system is being updated, please use the image analysis feature for detailed crack assessments. I can provide general guidance on crack types, repair methods, and when to consult professionals.`
     
-    // Stream CrackCheck AI response
-    for await (const chunk of stream) {
-      if (chunk.content) {
-        yield JSON.stringify({
-          type: 'chat_chunk',
-          content: chunk.content
-        }) + '\n\n'
-      }
-    }
-    
-    // If agents should be triggered, process in parallel after AI response
-    if (shouldUseAgents) {
-      console.log('Triggering agent system after AI response')
-      
-      // Process with agent system (this runs after AI response completes)
-      const result = await agentManager.processMessage(message, userId, conversationId)
-      
-      if (result.isAgentTriggered && result.agentResponses.length > 0) {
-        // Yield agent responses
-        for (const response of result.agentResponses) {
-          if (response.status === 'success' && response.data) {
-            yield JSON.stringify({
-              type: 'agent_result',
-              agentType: response.agentType,
-              data: response.data,
-              message: response.message
-            }) + '\n\n'
-          }
-        }
-        
-        // Note: Removed final_response to prevent overwriting CrackCheck AI content
-        // Agent results will be displayed independently via AgentMessage components
-      }
-    }
+    yield JSON.stringify({
+      type: 'chat_chunk',
+      content: response
+    }) + '\n\n'
     
     console.log('Chat processing completed')
   } catch (error) {
-    console.error('Agent system error:', error)
+    console.error('Chat system error:', error)
     yield JSON.stringify({
       type: 'error',
       message: 'Sorry, I encountered an error while processing your message. Please try again.'
@@ -256,7 +198,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user has enough credits (use same cost as image analysis for simplicity)
-    const requiredCredits = getCreditCost(model as 'gemini-2.0-flash' | 'gemini-2.5-flash')
+    const openRouterModel = model === 'gemini-2.5-flash' ? 'google/gemini-2.5-flash' : 'google/gemini-2.0-flash-001'
+    const requiredCredits = getCreditCost(openRouterModel as 'google/gemini-2.0-flash-001' | 'google/gemini-2.5-flash' | 'anthropic/claude-sonnet-4')
     const creditCheck = await checkCredits(userId, requiredCredits)
 
     if (!creditCheck.success) {
@@ -286,8 +229,8 @@ export async function POST(request: NextRequest) {
           let fullResponse = ''
           
           try {
-            // Stream chat with agent system
-            for await (const chunk of streamChatWithAgents(
+            // Stream chat
+            for await (const chunk of streamChat(
               message,
               userId,
               conversationId

@@ -9,7 +9,7 @@ import CountingNumber from './CountingNumber'
 export default function Pricing() {
   const { user } = useUser()
   const [paymentLoading, setPaymentLoading] = useState({ starter: false, pro: false })
-  const [selectedModel, setSelectedModel] = useState<'gemini-2.0-flash' | 'gemini-2.5-flash'>('gemini-2.0-flash')
+  const [selectedModel, setSelectedModel] = useState<'google/gemini-2.0-flash-001' | 'google/gemini-2.5-flash' | 'anthropic/claude-sonnet-4'>('google/gemini-2.0-flash-001')
   const [animationKey, setAnimationKey] = useState(0)
 
   // Calculate analyses based on selected model
@@ -80,24 +80,34 @@ export default function Pricing() {
           <div className="absolute top-4 right-6">
             <div className="bg-white rounded-lg p-1 inline-flex shadow-sm">
               <button
-                onClick={() => setSelectedModel('gemini-2.0-flash')}
+                onClick={() => setSelectedModel('anthropic/claude-sonnet-4')}
                 className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                  selectedModel === 'gemini-2.0-flash'
+                  selectedModel === 'anthropic/claude-sonnet-4'
                     ? 'bg-black text-white'
                     : 'text-gray-600 hover:text-black'
                 }`}
               >
-                Gemini 2.0 Flash
+                Claude 4
               </button>
               <button
-                onClick={() => setSelectedModel('gemini-2.5-flash')}
+                onClick={() => setSelectedModel('google/gemini-2.5-flash')}
                 className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                  selectedModel === 'gemini-2.5-flash'
+                  selectedModel === 'google/gemini-2.5-flash'
                     ? 'bg-black text-white'
                     : 'text-gray-600 hover:text-black'
                 }`}
               >
-                Gemini 2.5 Flash
+                Gemini 2.5
+              </button>
+              <button
+                onClick={() => setSelectedModel('google/gemini-2.0-flash-001')}
+                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  selectedModel === 'google/gemini-2.0-flash-001'
+                    ? 'bg-black text-white'
+                    : 'text-gray-600 hover:text-black'
+                }`}
+              >
+                Gemini 2.0
               </button>
             </div>
           </div>

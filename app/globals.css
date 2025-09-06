@@ -1,10 +1,30 @@
 @import "tailwindcss";
 @import "highlight.js/styles/github.css";
-@import "@uiw/react-md-editor/markdown-editor.css";
 
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  
+  /* Notion-style color palette - Adjusted for better contrast */
+  --notion-50: #f8f9fa;
+  --notion-100: #e9ecef;
+  --notion-200: #dee2e6;
+  --notion-300: #ced4da;
+  --notion-400: #adb5bd;
+  --notion-500: #6c757d;
+  --notion-600: #495057;
+  --notion-700: #343a40;
+  --notion-800: #212529;
+  --notion-900: #1a1d20;
+  --notion-950: #0d1117;
+  
+  /* Notion accent colors - Enhanced contrast */
+  --accent-blue: #0056b3;
+  --accent-green: #008a4e;
+  --accent-yellow: #e6a700;
+  --accent-red: #d63384;
+  --accent-purple: #7c3aed;
+  --accent-orange: #d97706;
 }
 
 @theme inline {
@@ -31,7 +51,7 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* === Markdown渲染样式 === */
+/* === Markdown rendering styles === */
 .markdown-rendered {
   color: #333;
   line-height: 1.6;

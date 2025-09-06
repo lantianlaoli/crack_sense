@@ -5,17 +5,6 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-// Database types for articles table (based on actual table structure)
-export interface Article {
-  id: string
-  title: string
-  slug: string
-  content: string
-  created_at: string
-  updated_at?: string
-  thumbnail?: string
-  excerpt?: string
-}
 
 // Database types for cracks table (extended for conversation support)
 export interface CrackRecord {
