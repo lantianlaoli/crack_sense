@@ -69,7 +69,21 @@ export async function GET() {
         // Handle both string and object formats for ai_analysis
         if (analysis.ai_analysis) {
           if (typeof analysis.ai_analysis === 'string') {
-            aiAnalysisData = JSON.parse(analysis.ai_analysis)
+            // Attempt to clean malformed JSON
+            let cleanedJson = analysis.ai_analysis.trim()
+            // Remove any trailing non-JSON content
+            const lastBraceIndex = cleanedJson.lastIndexOf('}')
+            if (lastBraceIndex !== -1 && lastBraceIndex < cleanedJson.length - 1) {
+              cleanedJson = cleanedJson.substring(0, lastBraceIndex + 1)
+            }
+            
+            try {
+              aiAnalysisData = JSON.parse(cleanedJson)
+            } catch (parseError) {
+              console.warn(`JSON parse error for analysis ${analysis.id}:`, parseError, 'Raw data length:', analysis.ai_analysis.length)
+              // Skip this analysis if JSON is malformed
+              aiAnalysisData = null
+            }
           } else {
             aiAnalysisData = analysis.ai_analysis
           }
@@ -86,7 +100,7 @@ export async function GET() {
           imageUrl = analysis.image_urls[0]
         }
       } catch (error) {
-        console.error('Error parsing ai_analysis:', error)
+        console.error(`Error processing ai_analysis for analysis ${analysis.id}:`, error)
         // Fall back to original images if parsing fails
         if (Array.isArray(analysis.image_urls) && analysis.image_urls.length > 0) {
           imageUrl = analysis.image_urls[0]

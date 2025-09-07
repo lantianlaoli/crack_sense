@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Grid, Search } from 'lucide-react'
+import { Grid } from 'lucide-react'
 import Navigation from '@/components/Navigation'
 import Footer from '@/components/Footer'
 import ExampleCard from '@/components/ExampleCard'
@@ -22,7 +22,6 @@ export default function ExamplesPage() {
   const [examples, setExamples] = useState<ExampleData[]>([])
   const [filteredExamples, setFilteredExamples] = useState<ExampleData[]>([])
   const [severityFilter, setSeverityFilter] = useState<'all' | 'high' | 'moderate' | 'low'>('all')
-  const [searchQuery, setSearchQuery] = useState('')
   const [selectedExample, setSelectedExample] = useState<ExampleData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -53,7 +52,7 @@ export default function ExamplesPage() {
     fetchExamples()
   }, [])
 
-  // Filter examples based on search and severity
+  // Filter examples based on severity
   useEffect(() => {
     let filtered = examples
 
@@ -62,18 +61,8 @@ export default function ExamplesPage() {
       filtered = filtered.filter(example => example.severity === severityFilter)
     }
 
-    // Apply search filter
-    if (searchQuery.trim()) {
-      filtered = filtered.filter(example =>
-        example.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        example.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        example.crack_type.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        example.analysis_summary.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    }
-
     setFilteredExamples(filtered)
-  }, [examples, severityFilter, searchQuery])
+  }, [examples, severityFilter])
 
   const handleViewDetails = (example: any) => {
     setSelectedExample(example)
@@ -84,7 +73,7 @@ export default function ExamplesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-white">
       <Navigation />
       {/* Hero Section */}
       <div className="bg-white border-b border-gray-200 pt-24">
@@ -99,20 +88,6 @@ export default function ExamplesPage() {
           <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
             Explore detailed examples of our AI-powered crack analysis with professional assessments and recommendations
           </p>
-
-          {/* Search Bar */}
-          <div className="max-w-2xl mx-auto relative mb-8">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <Search className="w-5 h-5 text-gray-400" />
-            </div>
-            <input
-              type="text"
-              placeholder="Search examples..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent text-lg"
-            />
-          </div>
 
           {/* Filter Tabs */}
           <div className="flex justify-center">
@@ -142,21 +117,6 @@ export default function ExamplesPage() {
 
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Results Header */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            {searchQuery 
-              ? `Search Results for "${searchQuery}"` 
-              : severityFilter === 'all' ? 'All Analysis Examples' : `${severityFilter} Risk Examples`
-            }
-          </h2>
-          <p className="text-gray-600">
-            {filteredExamples.length === 0 
-              ? 'No examples found'
-              : `${filteredExamples.length} example${filteredExamples.length === 1 ? '' : 's'} found`
-            }
-          </p>
-        </div>
 
         {/* Examples Grid */}
         {loading ? (
@@ -172,50 +132,9 @@ export default function ExamplesPage() {
             ))}
           </div>
         ) : error ? (
-          // Error state
-          <div className="text-center py-12">
-            <Grid className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-xl font-medium text-gray-900 mb-2">Failed to load examples</h3>
-            <p className="text-gray-600 mb-6">{error}</p>
-            <button
-              onClick={() => window.location.reload()}
-              className="bg-gray-900 text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-800 transition-colors"
-            >
-              Try Again
-            </button>
-          </div>
+          <div></div>
         ) : filteredExamples.length === 0 ? (
-          <div className="text-center py-12">
-            <Grid className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-xl font-medium text-gray-900 mb-2">
-              {searchQuery ? 'No examples found' : 'No examples available'}
-            </h3>
-            <p className="text-gray-600 mb-6">
-              {searchQuery 
-                ? 'Try adjusting your search terms or browse all examples'
-                : `No examples found for ${severityFilter} risk level`
-              }
-            </p>
-            <div className="flex gap-4 justify-center">
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery('')}
-                  className="bg-white text-gray-900 px-6 py-3 rounded-lg font-medium border border-gray-200 hover:bg-gray-50 transition-colors"
-                >
-                  Clear Search
-                </button>
-              )}
-              <button
-                onClick={() => {
-                  setSeverityFilter('all')
-                  setSearchQuery('')
-                }}
-                className="bg-gray-900 text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-800 transition-colors"
-              >
-                Show All Examples
-              </button>
-            </div>
-          </div>
+          <div></div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredExamples.map((example) => (
@@ -229,30 +148,11 @@ export default function ExamplesPage() {
         )}
       </div>
 
-      {/* CTA Section */}
-      <div className="bg-white border-t border-gray-200">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">
-            Get Your Own Professional Analysis
-          </h2>
-          <p className="text-lg text-gray-600 mb-8 max-w-2xl mx-auto">
-            Upload your crack photos and receive the same detailed analysis shown in these examples. 
-            Our AI provides professional-grade assessments in minutes.
-          </p>
-          <Link
-            href="/dashboard"
-            className="inline-flex items-center gap-2 bg-gray-900 text-white px-8 py-4 rounded-lg font-semibold hover:bg-gray-800 transition-colors"
-          >
-            Start Your Analysis
-            <Grid className="w-5 h-5" />
-          </Link>
-        </div>
-      </div>
 
       {/* Modal for example details */}
       {selectedExample && (
         <div 
-          className="fixed inset-0 bg-gray-50/80 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+          className="fixed inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center p-4 z-50"
           onClick={handleCloseModal}
         >
           <div 

@@ -116,10 +116,10 @@ export default function ExamplesSection() {
         {/* View All CTA */}
         <div className="text-center">
           <Link
-            href="/examples"
+            href="/example"
             className="inline-flex items-center gap-2 bg-gray-900 text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-800 transition-colors"
           >
-            View All Examples
+            View All Example
             <ArrowRight className="w-4 h-4" />
           </Link>
         </div>

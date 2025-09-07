@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
 import { ClerkProvider } from '@clerk/nextjs'
+import { Analytics } from '@vercel/analytics/react'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 import { UserInitializer } from '@/components/UserInitializer'
 import GoogleAnalytics from '@/components/GoogleAnalytics'
 import './globals.css'
@@ -72,6 +74,8 @@ export default function RootLayout({
           <GoogleAnalytics trackingId={process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS_ID || ''} />
           <UserInitializer />
           {children}
+          <Analytics />
+          <SpeedInsights />
         </body>
       </html>
     </ClerkProvider>

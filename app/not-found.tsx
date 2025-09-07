@@ -53,10 +53,10 @@ export default function NotFound() {
                 Start Crack Analysis
               </Link>
               <Link 
-                href="/examples" 
+                href="/example" 
                 className="text-blue-600 hover:text-blue-500 hover:underline"
               >
-                View Examples
+                View Example
               </Link>
             </div>
           </div>

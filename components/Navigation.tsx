@@ -53,8 +53,8 @@ export default function Navigation() {
               <Link href="/blog" className="text-gray-700 hover:text-gray-900 font-medium">
                 Blog
               </Link>
-              <Link href="/examples" className="text-gray-700 hover:text-gray-900 font-medium">
-                Examples
+              <Link href="/example" className="text-gray-700 hover:text-gray-900 font-medium">
+                Example
               </Link>
               <Link href="/pricing" className="text-gray-700 hover:text-gray-900 font-medium">
                 Pricing
@@ -76,7 +76,7 @@ export default function Navigation() {
               ) : (
                 <SignInButton mode="modal">
                   <button className="bg-black text-white px-5 py-2.5 rounded-lg font-medium hover:bg-gray-800 transition-colors">
-                    Get All Analysis
+                    Discover
                   </button>
                 </SignInButton>
               )}
