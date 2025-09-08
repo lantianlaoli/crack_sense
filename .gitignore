@@ -38,4 +38,13 @@ next-env.d.ts
 # MCP config (contains API keys)
 .mcp.json
 
+# Cursor/Claude IDE configs
+.cursor/
+.claude/
+
+# Test/temp files
+capture/
+*.tmp
+*.bak
+
 /.playwright-mcp

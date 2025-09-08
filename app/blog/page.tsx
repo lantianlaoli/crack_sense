@@ -4,6 +4,7 @@ import Navigation from '@/components/Navigation'
 import Footer from '@/components/Footer'
 import BlogCard from '@/components/BlogCard'
 import type { Article } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase'
 
 // Generate metadata for SEO
 export const metadata: Metadata = {
@@ -35,25 +36,26 @@ export const metadata: Metadata = {
   },
 }
 
-// Function to fetch articles
+// Function to fetch articles directly from Supabase
 async function fetchArticles(): Promise<Article[]> {
   try {
-    const baseUrl = process.env.VERCEL_URL 
-      ? `https://${process.env.VERCEL_URL}` 
-      : 'http://localhost:3000'
+    console.log('[Blog] Fetching articles directly from Supabase')
     
-    const response = await fetch(`${baseUrl}/api/articles?limit=50`, {
-      next: { revalidate: 300 } // Revalidate every 5 minutes
-    })
+    const { data: articles, error } = await supabase
+      .from('articles')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(50)
     
-    if (!response.ok) {
+    if (error) {
+      console.error('[Blog] Supabase error:', error)
       return []
     }
     
-    const data = await response.json()
-    return data.success ? data.articles : []
+    console.log('[Blog] Articles fetched:', articles?.length || 0)
+    return articles || []
   } catch (error) {
-    console.error('Error fetching articles:', error)
+    console.error('[Blog] Error fetching articles:', error)
     return []
   }
 }
