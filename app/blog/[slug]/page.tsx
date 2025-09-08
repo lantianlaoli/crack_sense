@@ -31,7 +31,7 @@ async function fetchArticle(slug: string): Promise<{ article: Article | null; re
 
     const { data: related, error: relatedError } = await supabase
       .from('articles')
-      .select('id, title, slug, excerpt, cover_image, created_at, reading_time')
+      .select('*')
       .eq('published', true)
       .neq('id', article.id)
       .order('created_at', { ascending: false })
