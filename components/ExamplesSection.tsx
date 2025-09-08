@@ -11,9 +11,39 @@ interface ExampleData {
   description: string
   severity: 'low' | 'moderate' | 'high'
   crack_type: string
+  crack_width?: string
+  crack_length?: string
   image_url: string
   analysis_summary: string
+  crack_cause: string
+  repair_steps: string[]
   created_at: string
+}
+
+// Helper function to format crack cause analysis
+const formatCrackCause = (crackCause: string) => {
+  if (!crackCause) return []
+  
+  // Split by numbered sections with headers (like "1) VISUAL ASSESSMENT:")
+  const sectionRegex = /(\d+\)\s+[A-Z\s]+:)/g
+  const parts = crackCause.split(sectionRegex).filter(part => part.trim())
+  
+  const formattedSections = []
+  for (let i = 0; i < parts.length; i += 2) {
+    if (parts[i] && parts[i + 1]) {
+      const header = parts[i].trim()
+      const content = parts[i + 1].trim()
+      formattedSections.push({
+        header,
+        content
+      })
+    }
+  }
+  
+  return formattedSections.length > 0 ? formattedSections : [{ 
+    header: '', 
+    content: crackCause.trim() 
+  }]
 }
 
 export default function ExamplesSection() {
@@ -125,73 +155,96 @@ export default function ExamplesSection() {
         </div>
       </div>
 
-      {/* Modal for example details */}
+      {/* Modal for example details - Simplified Report */}
       {selectedExample && (
         <div 
-          className="fixed inset-0 bg-gray-50/80 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
           onClick={handleCloseModal}
         >
           <div 
-            className="bg-white/95 backdrop-blur-md rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-200/50"
+            className="bg-white rounded-lg max-w-6xl w-full h-[85vh] overflow-hidden shadow-2xl border border-gray-200 relative"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="p-6">
-              {/* Modal Header */}
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900">{selectedExample.title}</h2>
-                  <p className="text-gray-600">{selectedExample.crack_type}</p>
+            {/* Close button */}
+            <button
+              onClick={handleCloseModal}
+              className="absolute top-4 right-4 z-10 text-gray-400 hover:text-gray-600 transition-colors bg-white rounded-full p-1 shadow-sm"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            {/* Left Right Split Layout */}
+            <div className="flex flex-col lg:flex-row h-full">
+              {/* Left Side - Root Cause Analysis */}
+              <div className="w-full lg:w-1/2 border-b lg:border-b-0 lg:border-r border-gray-200">
+                <div className="p-6 h-full flex flex-col">
+                  <h2 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-200 flex-shrink-0">
+                    Root Cause Analysis
+                  </h2>
+                  <div className="flex-1 overflow-y-auto pr-2">
+                    {selectedExample.crack_cause ? (
+                      <div className="space-y-4">
+                        {formatCrackCause(selectedExample.crack_cause).map((section, index) => (
+                          <div key={index} className="space-y-2">
+                            {section.header && (
+                              <h3 className="text-sm font-semibold text-gray-900 bg-gray-50 px-3 py-2 rounded">
+                                {section.header}
+                              </h3>
+                            )}
+                            <div className="prose prose-sm max-w-none">
+                              <p className="text-gray-700 leading-relaxed text-sm whitespace-pre-line">
+                                {section.content}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="prose prose-sm max-w-none">
+                        <p className="text-gray-700 leading-relaxed text-sm">
+                          {selectedExample.analysis_summary}
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <button
-                  onClick={handleCloseModal}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
               </div>
 
-              {/* Content */}
-              <div className="space-y-6">
-                <div>
-                  <h3 className="font-medium text-gray-900 mb-3">Description</h3>
-                  <p className="text-gray-700">{selectedExample.description}</p>
+              {/* Right Side - Repair Recommendations */}
+              <div className="w-full lg:w-1/2">
+                <div className="p-6 h-full flex flex-col">
+                  <h2 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-200 flex-shrink-0">
+                    Repair Recommendations
+                  </h2>
+                  <div className="flex-1 overflow-y-auto pr-2">
+                    {selectedExample.repair_steps && selectedExample.repair_steps.length > 0 ? (
+                      <div className="space-y-3">
+                        {selectedExample.repair_steps.map((step, index) => (
+                          <div key={index} className="bg-blue-50 p-4 rounded-lg">
+                            <div className="flex items-start space-x-3">
+                              <span className="flex-shrink-0 w-6 h-6 bg-blue-500 text-white rounded-full text-xs flex items-center justify-center mt-0.5 font-medium">
+                                {index + 1}
+                              </span>
+                              <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
+                                {step}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        <p className="text-sm text-gray-500 italic">
+                          No repair recommendations available for this analysis.
+                          <br />
+                          Debug info: repair_steps = {selectedExample.repair_steps ? `Array(${selectedExample.repair_steps.length})` : 'null'}
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
-
-                <div>
-                  <h3 className="font-medium text-gray-900 mb-3">AI Analysis Summary</h3>
-                  <p className="text-gray-700">{selectedExample.analysis_summary}</p>
-                </div>
-
-                <div>
-                  <h3 className="font-medium text-gray-900 mb-3">Severity Level</h3>
-                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${
-                    selectedExample.severity === 'high' 
-                      ? 'text-red-600 bg-red-50 border-red-200'
-                      : selectedExample.severity === 'moderate'
-                      ? 'text-yellow-600 bg-yellow-50 border-yellow-200'
-                      : 'text-green-600 bg-green-50 border-green-200'
-                  }`}>
-                    {selectedExample.severity} Risk
-                  </span>
-                </div>
-              </div>
-
-              {/* Modal Footer */}
-              <div className="mt-8 pt-6 border-t border-gray-200 flex justify-end space-x-3">
-                <button
-                  onClick={handleCloseModal}
-                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                >
-                  Close
-                </button>
-                <Link
-                  href="/dashboard"
-                  className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors"
-                >
-                  Analyze Your Crack
-                </Link>
               </div>
             </div>
           </div>

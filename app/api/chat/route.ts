@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
-import { checkCredits, deductCredits } from '@/lib/credits'
-import { getCreditCost } from '@/lib/constants'
+import { checkCredits } from '@/lib/credits'
 import { supabase } from '@/lib/supabase'
 
 // Helper function to create general chat response (currently unused)
@@ -39,7 +38,8 @@ Never introduce yourself by name in responses - users already know who they're t
 }
 */
 
-// Helper function to get intent-specific system prompt
+// Helper function to get intent-specific system prompt (currently unused)
+/*
 function getIntentSpecificPrompt(intent: string | null): string {
   const basePrompt = `You are CrackSense AI, a specialized assistant for structural crack analysis and building safety assessment.
 
@@ -144,13 +144,12 @@ Your response should:
 Focus on being comprehensively helpful while identifying the user's specific needs.`
   }
 }
+*/
 
 // Streaming chat function with CrackCheck AI priority response
 // Simple chat function without complex agent system
 async function* streamChat(
-  message: string, 
-  _userId: string,
-  _conversationId?: string
+  message: string
 ) {
   try {
     console.log('Processing chat message:', message)
@@ -197,27 +196,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid model specified' }, { status: 400 })
     }
 
-    // Check if user has enough credits (use same cost as image analysis for simplicity)
-    const openRouterModel = model === 'gemini-2.5-flash' ? 'google/gemini-2.5-flash' : 'google/gemini-2.0-flash-001'
-    const requiredCredits = getCreditCost(openRouterModel as 'google/gemini-2.0-flash-001' | 'google/gemini-2.5-flash' | 'anthropic/claude-sonnet-4')
-    const creditCheck = await checkCredits(userId, requiredCredits)
-
+    // Note: Chat is now free - only PDF export charges credits
+    // Basic credit check to prevent abuse for users with 0 credits
+    const creditCheck = await checkCredits(userId, 1)
+    
     if (!creditCheck.success) {
       return NextResponse.json({ error: creditCheck.error }, { status: 500 })
     }
 
     if (!creditCheck.hasEnoughCredits) {
       return NextResponse.json({ 
-        error: 'Insufficient credits',
-        requiredCredits,
+        error: 'You need at least 1 credit to use chat features. Credits are only charged when exporting analysis to PDF.',
         currentCredits: creditCheck.currentCredits || 0
       }, { status: 402 })
-    }
-
-    // Deduct credits before chat
-    const deductResult = await deductCredits(userId, requiredCredits)
-    if (!deductResult.success) {
-      return NextResponse.json({ error: deductResult.error }, { status: 500 })
     }
 
     try {
@@ -240,9 +231,7 @@ export async function POST(request: NextRequest) {
               // Send chunk to client
               const data = JSON.stringify({
                 success: true,
-                chunk,
-                creditsUsed: requiredCredits,
-                remainingCredits: deductResult.remainingCredits
+                chunk
               })
               controller.enqueue(encoder.encode(`data: ${data}\n\n`))
             }
@@ -287,10 +276,9 @@ export async function POST(request: NextRequest) {
         }
       })
     } catch (chatError) {
-      console.error('Chat failed after credit deduction:', chatError)
+      console.error('Chat failed:', chatError)
       return NextResponse.json({ 
-        error: 'Chat failed. Credits have been deducted but chat could not be completed.',
-        creditsDeducted: requiredCredits
+        error: 'Chat failed. Please try again. No credits have been charged.',
       }, { status: 500 })
     }
 

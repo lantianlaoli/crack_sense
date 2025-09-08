@@ -6,7 +6,7 @@ interface Analysis {
   id: string
   created_at: string
   image_urls: string[]
-  user_description: string
+  crack_cause: string
   severity: 'low' | 'moderate' | 'high'
   ai_analysis: {
     confidence: number
@@ -125,7 +125,7 @@ export default function ReportsPanel({
               {/* Description */}
               <div className="mb-2">
                 <p className="text-sm text-gray-900 line-clamp-2">
-                  {analysis.user_description || 'No description'}
+                  {analysis.crack_cause || 'No description'}
                 </p>
               </div>
 

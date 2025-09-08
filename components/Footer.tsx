@@ -13,9 +13,9 @@ export default function Footer() {
               <Image
                 src="/logo.png"
                 alt="CrackSense Logo"
-                width={24}
-                height={24}
-                className="w-6 h-6"
+                width={28}
+                height={28}
+                className="w-7 h-7"
               />
               <span className="text-lg font-bold text-gray-900">CrackSense</span>
             </div>

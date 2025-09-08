@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
-import { checkCredits, deductCredits } from '@/lib/credits'
+import { checkCredits } from '@/lib/credits'
 import { getCreditCost } from '@/lib/constants'
 import { supabase } from '@/lib/supabase'
 import { openRouterClient } from '@/lib/openrouter-client'
@@ -31,7 +31,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid model specified' }, { status: 400 })
     }
 
-    // Check if user has enough credits
+    // Note: Credit deduction now happens only during PDF export
+    // We still check if user has credits to prevent abuse, but don't deduct yet
     const requiredCredits = getCreditCost(model as keyof typeof import('@/lib/constants').CREDIT_COSTS)
     const creditCheck = await checkCredits(userId, requiredCredits)
 
@@ -41,16 +42,10 @@ export async function POST(request: NextRequest) {
 
     if (!creditCheck.hasEnoughCredits) {
       return NextResponse.json({ 
-        error: 'Insufficient credits',
+        error: 'Insufficient credits for PDF export. Credits will only be charged when you export the analysis as PDF.',
         requiredCredits,
         currentCredits: creditCheck.currentCredits || 0
       }, { status: 402 })
-    }
-
-    // Deduct credits before analysis
-    const deductResult = await deductCredits(userId, requiredCredits)
-    if (!deductResult.success) {
-      return NextResponse.json({ error: deductResult.error }, { status: 500 })
     }
 
     try {
@@ -74,26 +69,13 @@ export async function POST(request: NextRequest) {
         .from('crack_analyses')
         .insert({
           user_id: userId,
-          user_description: description || 'Crack analysis request',
-          severity: analysisResults.risk_level,
-          crack_cause_category: analysisResults.crack_cause,
           crack_type: analysisResults.crack_type,
-          crack_severity: analysisResults.risk_level,
-          // Save OpenRouter results in the new fields
           crack_cause: analysisResults.crack_cause,
           crack_width: analysisResults.crack_width,
           crack_length: analysisResults.crack_length,
           repair_steps: analysisResults.repair_steps,
           risk_level: analysisResults.risk_level,
-          personalized_analysis: `Crack Dimensions: ${analysisResults.crack_width} width × ${analysisResults.crack_length} length\n\nDetailed Analysis:\n${analysisResults.crack_cause}\n\nRepair Methodology:\n${analysisResults.repair_steps.join('\n• ')}`,
-          structural_impact_assessment: `${analysisResults.crack_type} crack with ${analysisResults.risk_level} risk level`,
-          immediate_actions_required: analysisResults.repair_steps,
-          long_term_recommendations: ['Monitor crack progression', 'Document changes with photos'],
-          monitoring_requirements: 'Check monthly for changes in width or length',
-          professional_consultation_needed: analysisResults.risk_level === 'high',
-          confidence_level: 90, // Default confidence for OpenRouter
           image_urls: imageUrls,
-          user_question: description || '',
           model_used: model
         })
         .select()
@@ -119,44 +101,38 @@ export async function POST(request: NextRequest) {
             risk_level: analysisResults.risk_level
           })
           
-          // Update database with processed images (preserve existing ai_analysis data)
-          const { data: currentAnalysis } = await supabase
+          // Update database with processed images using the correct column
+          const { data: updateData, error: updateError } = await supabase
             .from('crack_analyses')
-            .select('ai_analysis')
+            .update({ processed_image_url: processedImageUrls[0] || null })
+            .eq('id', savedAnalysis.id)
+            
+          if (updateError) {
+            console.error('Failed to update database with processed images:', updateError)
+            throw new Error(`Database update failed: ${updateError.message}`)
+          }
+          
+          console.log('Database updated successfully with processed image URL')
+          console.log('Update data:', updateData)
+          console.log('Saved processed_image_url:', processedImageUrls[0])
+          console.log('KIE processing completed:', processedImageUrls)
+          
+          // Verify the data was saved correctly
+          const { data: verifyData, error: verifyError } = await supabase
+            .from('crack_analyses')
+            .select('processed_image_url')
             .eq('id', savedAnalysis.id)
             .single()
             
-          const updatedAiAnalysis = {
-            ...(currentAnalysis?.ai_analysis || {}),
-            processed_images: processedImageUrls,
-            processed_at: new Date().toISOString()
+          if (verifyError) {
+            console.error('Failed to verify saved data:', verifyError)
+          } else {
+            console.log('Verification: processed_image_url in database:', verifyData?.processed_image_url)
           }
-          
-          await supabase
-            .from('crack_analyses')
-            .update({ ai_analysis: updatedAiAnalysis })
-            .eq('id', savedAnalysis.id)
-            
-          console.log('KIE processing completed:', processedImageUrls)
         } catch (error) {
           console.error('KIE processing failed:', error)
-          // Update database with error status (preserve existing ai_analysis data)  
-          const { data: currentAnalysis } = await supabase
-            .from('crack_analyses')
-            .select('ai_analysis')
-            .eq('id', savedAnalysis.id)
-            .single()
-            
-          const updatedAiAnalysis = {
-            ...(currentAnalysis?.ai_analysis || {}),
-            processing_error: error instanceof Error ? error.message : 'Unknown error',
-            processed_at: new Date().toISOString()
-          }
-          
-          await supabase
-            .from('crack_analyses')
-            .update({ ai_analysis: updatedAiAnalysis })
-            .eq('id', savedAnalysis.id)
+          // Note: Could optionally store error in a separate field if needed
+          // For now, just log the error - the analysis is still valid without processed image
         }
       }
 
@@ -167,23 +143,16 @@ export async function POST(request: NextRequest) {
         success: true,
         analysis: analysisResults,
         analysisId: savedAnalysis.id,
-        creditsUsed: requiredCredits,
-        message: 'Analysis completed. AR-enhanced images are being processed and will be available shortly.'
+        modelUsed: model,
+        creditsRequired: requiredCredits,
+        message: 'Analysis completed. AR-enhanced images are being processed and will be available shortly. Credits will be charged only when you export to PDF.'
       })
 
     } catch (analysisError) {
       console.error('Analysis failed:', analysisError)
-      
-      // Try to refund credits on analysis failure
-      try {
-        // This would require implementing a refund credits function
-        console.log('Analysis failed, should refund credits:', requiredCredits)
-      } catch (refundError) {
-        console.error('Failed to refund credits:', refundError)
-      }
 
       return NextResponse.json({
-        error: 'AI analysis failed. Please try again.',
+        error: 'AI analysis failed. Please try again. No credits have been charged.',
         details: analysisError instanceof Error ? analysisError.message : 'Unknown error'
       }, { status: 500 })
     }

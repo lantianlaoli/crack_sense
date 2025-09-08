@@ -6,13 +6,14 @@ import { FaThreads } from 'react-icons/fa6'
 import DashboardSidebar from '@/components/DashboardSidebar'
 import AnalysisPage from '@/components/AnalysisPage'
 import AnalysisHistoryPage from '@/components/AnalysisHistoryPage'
+import CreditsHistoryPage from '@/components/CreditsHistoryPage'
 import ToastContainer, { useToast } from '@/components/ToastContainer'
 
 interface Analysis {
   id: string
   created_at: string
   image_urls: string[]
-  user_description: string
+  crack_cause: string
   severity: 'low' | 'moderate' | 'high'
   ai_analysis: {
     confidence: number
@@ -161,6 +162,12 @@ export default function Dashboard() {
     />
   )
 
+  const renderCreditsHistoryPage = () => (
+    <CreditsHistoryPage 
+      userId={user?.id}
+    />
+  )
+
   const renderSupportPage = () => {
     // Get contact information from environment variables
     const contactInfo = {
@@ -278,6 +285,8 @@ export default function Dashboard() {
         return renderAnalysisPage()
       case 'history':
         return renderHistoryPage()
+      case 'credits':
+        return renderCreditsHistoryPage()
       case 'support':
         return renderSupportPage()
       default:

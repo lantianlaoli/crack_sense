@@ -1,80 +1,106 @@
-'use client'
-
-import { useState, useEffect } from 'react'
+import { Metadata } from 'next'
 import { BookOpen } from 'lucide-react'
 import Navigation from '@/components/Navigation'
 import Footer from '@/components/Footer'
 import BlogCard from '@/components/BlogCard'
 import type { Article } from '@/lib/supabase'
 
-export default function BlogPage() {
-  const [articles, setArticles] = useState<Article[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    const fetchArticles = async () => {
-      try {
-        setLoading(true)
-        const response = await fetch('/api/articles?limit=50')
-        const data = await response.json()
-        
-        if (data.success) {
-          setArticles(data.articles)
-        }
-      } catch (error) {
-        console.error('Error fetching articles:', error)
-      } finally {
-        setLoading(false)
+// Generate metadata for SEO
+export const metadata: Metadata = {
+  title: 'Expert Crack Analysis Insights | CrackSense Blog',
+  description: 'Comprehensive guides and expert insights on identifying, analyzing, and addressing structural cracks. Learn from professional building inspectors and engineers.',
+  keywords: ['crack analysis', 'building inspection', 'structural assessment', 'crack repair', 'building maintenance', 'structural engineering', 'property inspection'],
+  openGraph: {
+    title: 'Expert Crack Analysis Insights | CrackSense Blog',
+    description: 'Comprehensive guides and expert insights on structural crack analysis and building inspection.',
+    type: 'website',
+    url: 'https://www.cracksense.online/blog',
+    images: [
+      {
+        url: '/og-blog.jpg',
+        width: 1200,
+        height: 630,
+        alt: 'CrackSense Blog - Expert Insights',
       }
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Expert Crack Analysis Insights | CrackSense Blog',
+    description: 'Comprehensive guides and expert insights on structural crack analysis.',
+    images: ['/twitter-blog.jpg'],
+  },
+  alternates: {
+    canonical: 'https://www.cracksense.online/blog',
+  },
+}
+
+// Function to fetch articles
+async function fetchArticles(): Promise<Article[]> {
+  try {
+    const baseUrl = process.env.VERCEL_URL 
+      ? `https://${process.env.VERCEL_URL}` 
+      : 'http://localhost:3000'
+    
+    const response = await fetch(`${baseUrl}/api/articles?limit=50`, {
+      next: { revalidate: 300 } // Revalidate every 5 minutes
+    })
+    
+    if (!response.ok) {
+      return []
     }
+    
+    const data = await response.json()
+    return data.success ? data.articles : []
+  } catch (error) {
+    console.error('Error fetching articles:', error)
+    return []
+  }
+}
 
-    fetchArticles()
-  }, [])
+export default async function BlogPage() {
+  const articles = await fetchArticles()
 
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-white">
-        <Navigation />
-        {/* Hero Section */}
-        <div className="bg-white pt-24">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
-            <div className="inline-flex items-center gap-2 bg-gray-900 text-white px-4 py-2 rounded-full text-sm font-medium mb-4">
-              <BookOpen className="w-4 h-4" />
-              Expert Knowledge Base
-            </div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">
-              Crack Analysis Insights
-            </h1>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Comprehensive guides and expert insights on identifying, analyzing, and addressing structural cracks
-            </p>
-          </div>
-        </div>
-
-        {/* Loading Content */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="bg-white rounded-lg border border-gray-200 p-6 animate-pulse">
-                <div className="aspect-[16/9] bg-gray-200 rounded mb-4"></div>
-                <div className="h-4 bg-gray-200 rounded mb-2"></div>
-                <div className="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
-                <div className="space-y-2">
-                  <div className="h-3 bg-gray-200 rounded"></div>
-                  <div className="h-3 bg-gray-200 rounded w-5/6"></div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-        <Footer />
-      </div>
-    )
+  // JSON-LD structured data for SEO
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Blog',
+    name: 'CrackSense Expert Blog',
+    description: 'Expert insights and guides on structural crack analysis and building inspection',
+    url: 'https://www.cracksense.online/blog',
+    publisher: {
+      '@type': 'Organization',
+      name: 'CrackSense',
+      logo: {
+        '@type': 'ImageObject',
+        url: 'https://www.cracksense.online/logo.png',
+      },
+    },
+    inLanguage: 'en-US',
+    about: {
+      '@type': 'Thing',
+      name: 'Crack Analysis and Building Inspection',
+    },
+    blogPost: articles.map(article => ({
+      '@type': 'BlogPosting',
+      headline: article.title,
+      description: article.excerpt,
+      url: `https://www.cracksense.online/blog/${article.slug}`,
+      datePublished: article.created_at,
+      dateModified: article.updated_at || article.created_at,
+      author: {
+        '@type': 'Person',
+        name: article.author_name,
+      },
+    })),
   }
 
   return (
     <div className="min-h-screen bg-white">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <Navigation />
       {/* Hero Section */}
       <div className="bg-white pt-24">

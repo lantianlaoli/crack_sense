@@ -12,7 +12,8 @@ import {
   Crown,
   Zap,
   Gauge,
-  User
+  User,
+  CreditCard
 } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -43,6 +44,11 @@ const navigationItems = [
     id: 'history',
     label: 'Past Reports',
     icon: History
+  },
+  {
+    id: 'credits',
+    label: 'Credits History',
+    icon: CreditCard
   }
 ]
 

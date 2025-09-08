@@ -13,23 +13,12 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { id } = await params
+    await params // id parameter not currently used but params must be awaited
     
-    // Get crack analyses for this conversation
+    // Get crack analyses for this user (conversation_id field was removed)
     const { data: analyses, error } = await supabase
       .from('crack_analyses')
-      .select(`
-        *,
-        crack_cause_templates!inner(
-          title,
-          description,
-          typical_characteristics,
-          risk_indicators,
-          standard_recommendations,
-          severity_factors
-        )
-      `)
-      .eq('conversation_id', id)
+      .select('*')
       .eq('user_id', userId)
       .order('created_at', { ascending: true })
 

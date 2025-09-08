@@ -16,7 +16,7 @@ export default function ReportsPage({ analyses, onSelectAnalysis, selectedAnalys
 
   const filteredAnalyses = analyses.filter(analysis => {
     const matchesSearch = analysis.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         analysis.user_description?.toLowerCase().includes(searchTerm.toLowerCase())
+                         analysis.crack_cause?.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesSeverity = severityFilter === 'all' || analysis.severity === severityFilter
     const matchesDate = dateFilter === 'all' || 
                        (dateFilter === 'today' && isToday(new Date(analysis.created_at))) ||
@@ -126,7 +126,7 @@ export default function ReportsPage({ analyses, onSelectAnalysis, selectedAnalys
                   </div>
                   
                   <p className="text-sm text-notion-600 mb-2 line-clamp-2">
-                    {analysis.user_description || 'No description provided'}
+                    {analysis.crack_cause || 'No description provided'}
                   </p>
                   
                   <div className="flex items-center justify-between text-xs text-notion-500">
@@ -202,12 +202,12 @@ export default function ReportsPage({ analyses, onSelectAnalysis, selectedAnalys
                 </div>
 
                 {/* User Description */}
-                {analyses.find(a => a.id === selectedAnalysisId)?.user_description && (
+                {analyses.find(a => a.id === selectedAnalysisId)?.crack_cause && (
                   <div>
                     <h2 className="text-lg font-semibold text-notion-900 mb-4">User Description</h2>
                     <div className="bg-notion-50 rounded-lg p-4">
                       <p className="text-notion-700">
-                        {analyses.find(a => a.id === selectedAnalysisId)?.user_description}
+                        {analyses.find(a => a.id === selectedAnalysisId)?.crack_cause}
                       </p>
                     </div>
                   </div>

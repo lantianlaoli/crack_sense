@@ -81,29 +81,20 @@ export interface CrackCauseTemplate {
   created_at: string
 }
 
-// Database types for crack_analyses table
+// Database types for crack_analyses table (simplified with essential fields only)
 export interface CrackAnalysis {
   id: string
   user_id: string
-  conversation_id?: string
-  crack_cause_category: 'settlement' | 'thermal' | 'moisture' | 'structural' | 'vibration' | 'material_defect' | 'other'
-  crack_type: 'horizontal' | 'vertical' | 'diagonal' | 'stepped' | 'random' | 'hairline' | 'wide'
-  crack_severity: 'low' | 'moderate' | 'high'
-  personalized_analysis: string
-  structural_impact_assessment: string
-  immediate_actions_required: string[]
-  long_term_recommendations: string[]
-  monitoring_requirements: string
-  professional_consultation_needed: boolean
-  confidence_level: number
+  crack_type?: string
+  crack_cause?: string
+  crack_width?: string
+  crack_length?: string
+  repair_steps?: string[]
+  risk_level?: string
   image_urls: string[]
-  user_question?: string
-  additional_context?: string
-  environmental_factors?: string
-  building_age_type?: string
-  previous_repairs?: string
+  processed_image_url?: string
+  model_used?: string
   created_at: string
-  updated_at: string
 }
 
 // Database types for repair_products table
@@ -167,4 +158,27 @@ export interface Article {
   reading_time?: number
   created_at: string
   updated_at: string
+}
+
+// Database types for credit transactions table
+export interface CreditTransaction {
+  id: string
+  user_id: string
+  transaction_type: 'deduct' | 'add' | 'refund' | 'initial'
+  amount: number
+  description: string
+  related_analysis_id?: string
+  pdf_export_id?: string
+  model_used?: string
+  created_at: string
+}
+
+// Database types for PDF exports table
+export interface PDFExport {
+  id: string
+  user_id: string
+  analysis_id: string
+  model_used: string
+  credits_charged: number
+  exported_at: string
 }

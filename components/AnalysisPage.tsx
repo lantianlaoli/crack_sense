@@ -1,11 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { Camera, X, Upload, FileText, AlertCircle, ArrowLeft, Home, RefreshCw, Eye, Download } from 'lucide-react'
+import { Camera, X, Upload, FileText, AlertCircle, ArrowLeft, Home, RefreshCw, Eye, Download, Coins } from 'lucide-react'
 import AnalysisResults from './AnalysisResults'
 import { HomeownerCrackAnalysis } from '@/lib/types'
 import { useToast } from './ToastContainer'
 import { generatePDFReport, convertToPDFData } from '@/lib/pdf-utils'
+import { getCreditCost } from '@/lib/constants'
 
 interface AnalysisPageProps {
   credits: number | null
@@ -14,7 +15,8 @@ interface AnalysisPageProps {
     success: boolean
     analysis: HomeownerCrackAnalysis
     analysisId: string
-    creditsUsed: number
+    modelUsed: string
+    creditsRequired: number
     uploadedImageUrls: string[]
   }>
   isAnalyzing: boolean
@@ -31,11 +33,14 @@ export default function AnalysisPage({
   const [analysisResult, setAnalysisResult] = useState<HomeownerCrackAnalysis | null>(null)
   const [imageUrls, setImageUrls] = useState<string[]>([])
   const [isExportingPDF, setIsExportingPDF] = useState(false)
+  const [analysisId, setAnalysisId] = useState<string | null>(null)
+  const [modelUsed, setModelUsed] = useState<string | null>(null)
 
   const [analysisStep, setAnalysisStep] = useState<'idle' | 'expanding' | 'step1' | 'step2' | 'step3' | 'step4' | 'step5' | 'step6' | 'complete'>('idle')
   const [textVisible, setTextVisible] = useState(true)
   const [isCheckingProcessedImages, setIsCheckingProcessedImages] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [imageKey, setImageKey] = useState(0)
   const { showError, showSuccess } = useToast()
 
   // Function to check for processed images
@@ -47,17 +52,30 @@ export default function AnalysisPage({
         const response = await fetch(`/api/analyses/${analysisId}`)
         if (response.ok) {
           const updatedAnalysis = await response.json()
+          console.log('API Response received:', updatedAnalysis)
+          console.log('processed_images in response:', updatedAnalysis.processed_images)
           if (updatedAnalysis.processed_images && updatedAnalysis.processed_images.length > 0) {
             // Only update processed_images, preserve all other analysis data
-            setAnalysisResult(prev => prev ? {
-              ...prev,
-              processed_images: updatedAnalysis.processed_images
-            } : updatedAnalysis)
+            setAnalysisResult(prev => {
+              const newState = prev ? {
+                ...prev,
+                processed_images: updatedAnalysis.processed_images
+              } : updatedAnalysis
+              console.log('Updating analysisResult with processed images:', newState.processed_images)
+              console.log('Previous state had processed images:', prev?.processed_images)
+              return newState
+            })
             setIsCheckingProcessedImages(false)
+            setImageKey(prev => prev + 1) // Force image re-render
+            showSuccess('Image Enhanced', 'AR measurements and overlays have been added to your crack analysis!')
             console.log('Processed images loaded:', updatedAnalysis.processed_images)
             console.log('Original analysis data preserved')
             return
+          } else {
+            console.log('No processed_images found in response yet, attempt:', attempt + 1)
           }
+        } else {
+          console.error('Non-200 response from API:', response.status, response.statusText)
         }
       } catch (error) {
         console.error('Error checking for processed images:', error)
@@ -182,6 +200,8 @@ export default function AnalysisPage({
       
       if (apiResult.analysis) {
         setAnalysisResult(apiResult.analysis)
+        setAnalysisId(apiResult.analysisId)
+        setModelUsed(apiResult.modelUsed)
         setAnalysisStep('complete')
         showSuccess('Analysis Complete', 'Your crack analysis report is ready!')
         
@@ -217,13 +237,17 @@ export default function AnalysisPage({
     setAnalysisResult(null)
     setImageUrls([])
     setIsExportingPDF(false)
+    setAnalysisId(null)
+    setModelUsed(null)
     setError(null)
     setAnalysisStep('idle')
     setTextVisible(true)
+    setImageKey(0)
+    setIsCheckingProcessedImages(false)
   }
 
   const handleExportPDF = async () => {
-    if (!analysisResult) {
+    if (!analysisResult || !analysisId) {
       showError('Export Failed', 'No analysis data available for export')
       return
     }
@@ -231,18 +255,36 @@ export default function AnalysisPage({
     try {
       setIsExportingPDF(true)
       
-      // Use processed images if available, otherwise use original image URLs
+      // Call the new PDF export API that handles credit deduction
+      const response = await fetch('/api/export-pdf', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          analysisId
+        })
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to export PDF')
+      }
+
+      if (result.alreadyExported) {
+        showSuccess('Export Ready', 'PDF was already exported for this analysis. Generating download...')
+      } else {
+        showSuccess('Export Complete', `PDF exported successfully! ${result.creditsCharged} credits charged. ${result.remainingCredits} credits remaining.`)
+      }
+
+      // Now generate and download the actual PDF file
       const exportImageUrls = analysisResult.processed_images && analysisResult.processed_images.length > 0 
         ? analysisResult.processed_images
         : imageUrls
 
-      // Convert analysis data to PDF format
       const pdfData = convertToPDFData(analysisResult, exportImageUrls)
-      
-      // Generate and download PDF
       generatePDFReport(pdfData)
-      
-      showSuccess('Export Complete', 'PDF report has been downloaded successfully!')
       
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to export PDF report'
@@ -253,6 +295,9 @@ export default function AnalysisPage({
   }
 
   const canAnalyze = files.length > 0 && !isAnalyzing && credits && credits >= 15
+  
+  // Calculate credit cost for PDF export based on model used
+  const pdfExportCredits = modelUsed ? getCreditCost(modelUsed as 'google/gemini-2.0-flash-001' | 'google/gemini-2.5-flash' | 'anthropic/claude-sonnet-4') : 15
 
   // Show integrated image and results layout
   if (analysisResult) {
@@ -280,27 +325,35 @@ export default function AnalysisPage({
                 <div className="bg-white rounded-xl shadow-sm overflow-hidden">
                   {/* Image Section */}
                   <div className="p-4 relative">
-                    <div className="w-full h-80 bg-gray-50 rounded-lg overflow-hidden">
+                    <div className="w-full h-80 bg-gray-50 rounded-lg overflow-hidden relative">
                       <img
+                        key={`analysis-image-${imageKey}`}
                         src={
                           (analysisResult?.processed_images && analysisResult.processed_images[0]) ||
                           URL.createObjectURL(files[0])
                         }
                         alt="Crack analysis with AR overlay"
-                        className="w-full h-full object-cover transition-all duration-1000"
+                        className={`w-full h-full object-cover transition-all duration-1000 ${
+                          isCheckingProcessedImages && !(analysisResult?.processed_images && analysisResult.processed_images.length > 0) 
+                            ? 'blur-sm' 
+                            : ''
+                        }`}
+                        onLoad={() => console.log('Image loaded:', (analysisResult?.processed_images && analysisResult.processed_images[0]) || 'original image')}
                       />
-                    </div>
-                    
-                    {/* AR Processing Status - Notion Style */}
-                    {isCheckingProcessedImages && !(analysisResult?.processed_images && analysisResult.processed_images.length > 0) && (
-                      <div className="absolute top-4 right-4 bg-notion-50 border border-notion-200 rounded-lg px-4 py-3 shadow-sm">
-                        <div className="flex items-center gap-3">
-                          <div className="w-3 h-3 border-2 border-notion-400 border-t-transparent rounded-full animate-spin"></div>
-                          <span className="text-sm text-notion-700 font-medium">Processing AR enhancements...</span>
+                      
+                      {/* AR Processing Status - Full Overlay with Center Indicator */}
+                      {isCheckingProcessedImages && !(analysisResult?.processed_images && analysisResult.processed_images.length > 0) && (
+                        <div className="absolute inset-0 bg-black/20 backdrop-blur-sm rounded-lg flex items-center justify-center">
+                          <div className="bg-white rounded-xl shadow-lg px-8 py-6 flex flex-col items-center gap-4 max-w-xs text-center">
+                            <div className="w-8 h-8 border-4 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
+                            <div>
+                              <h3 className="text-lg font-semibold text-gray-900 mb-1">Enhancing Image</h3>
+                              <p className="text-sm text-gray-600">Adding AR-style measurements and overlays...</p>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    )}
-                    
+                      )}
+                    </div>
                   </div>
 
                   {/* Analysis Results - Seamlessly integrated */}
@@ -342,7 +395,11 @@ export default function AnalysisPage({
                     ) : (
                       <>
                         <Download className="w-4 h-4" />
-                        Export PDF Report
+                        <span>Export PDF Report</span>
+                        <div className="flex items-center gap-1 text-yellow-300">
+                          <Coins className="w-3 h-3" />
+                          <span className="text-xs">{pdfExportCredits}</span>
+                        </div>
                       </>
                     )}
                   </button>

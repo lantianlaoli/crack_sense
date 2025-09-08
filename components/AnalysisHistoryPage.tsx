@@ -17,31 +17,34 @@ import {
   Gauge
 } from 'lucide-react'
 import Image from 'next/image'
+import { getCreditCost } from '@/lib/constants'
+import { checkPDFExportExists } from '@/lib/credits'
+import { generatePDFReport, convertToPDFData } from '@/lib/pdf-utils'
 
 
 interface AnalysisRecord {
   id: string
   created_at: string
-  updated_at: string
   image_urls: string[]
-  user_description: string
-  severity: 'low' | 'moderate' | 'high'
-  crack_cause_category: string
   crack_type: string
-  crack_severity: 'low' | 'moderate' | 'high'
-  personalized_analysis: string
-  structural_impact_assessment: string
-  immediate_actions_required: string[]
-  long_term_recommendations: string[]
-  monitoring_requirements: string
-  professional_consultation_needed: boolean
+  crack_cause: string
+  crack_width: string
+  crack_length: string
+  repair_steps: string[]
+  risk_level: 'low' | 'moderate' | 'high'
+  processed_image_url?: string
   model_used: string
-  confidence_level: number
-  user_question: string
 }
 
 interface AnalysisHistoryPageProps {
   onViewAnalysis?: (analysisId: string) => void
+}
+
+interface PDFExportStatus {
+  [analysisId: string]: {
+    exported: boolean
+    loading: boolean
+  }
 }
 
 const getSeverityColor = (severity: string) => {
@@ -94,6 +97,32 @@ const formatDate = (dateString: string) => {
   })
 }
 
+// Helper function to format crack cause analysis like ExamplesSection
+const formatCrackCause = (crackCause: string) => {
+  if (!crackCause) return []
+  
+  // Split by numbered sections with headers (like "1) VISUAL ASSESSMENT:")
+  const sectionRegex = /(\d+\)\s+[A-Z\s]+:)/g
+  const parts = crackCause.split(sectionRegex).filter(part => part.trim())
+  
+  const formattedSections = []
+  for (let i = 0; i < parts.length; i += 2) {
+    if (parts[i] && parts[i + 1]) {
+      const header = parts[i].trim()
+      const content = parts[i + 1].trim()
+      formattedSections.push({
+        header,
+        content
+      })
+    }
+  }
+  
+  return formattedSections.length > 0 ? formattedSections : [{ 
+    header: '', 
+    content: crackCause.trim() 
+  }]
+}
+
 export default function AnalysisHistoryPage({ onViewAnalysis }: AnalysisHistoryPageProps) {
   const { user } = useUser()
   const [analyses, setAnalyses] = useState<AnalysisRecord[]>([])
@@ -101,8 +130,8 @@ export default function AnalysisHistoryPage({ onViewAnalysis }: AnalysisHistoryP
   const [error, setError] = useState<string | null>(null)
   const [selectedAnalysis, setSelectedAnalysis] = useState<AnalysisRecord | null>(null)
   const [filter, setFilter] = useState<'all' | 'high' | 'moderate' | 'low'>('all')
-
   const [searchQuery, setSearchQuery] = useState('')
+  const [pdfExportStatus, setPdfExportStatus] = useState<PDFExportStatus>({})
 
   useEffect(() => {
     const fetchAnalyses = async () => {
@@ -117,6 +146,8 @@ export default function AnalysisHistoryPage({ onViewAnalysis }: AnalysisHistoryP
         
         if (data.success) {
           setAnalyses(data.analyses)
+          // Check PDF export statuses after loading analyses
+          await checkPDFExportStatuses(data.analyses)
         } else {
           setError('Failed to fetch analysis history')
         }
@@ -146,12 +177,10 @@ export default function AnalysisHistoryPage({ onViewAnalysis }: AnalysisHistoryP
   }, [selectedAnalysis])
 
   const filteredAnalyses = analyses.filter(analysis => {
-    const matchesFilter = filter === 'all' || analysis.crack_severity === filter
+    const matchesFilter = filter === 'all' || analysis.risk_level === filter
     const matchesSearch = searchQuery === '' || 
-      analysis.personalized_analysis?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      analysis.crack_type?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      analysis.crack_cause_category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      analysis.user_description?.toLowerCase().includes(searchQuery.toLowerCase())
+      analysis.crack_cause?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      analysis.crack_type?.toLowerCase().includes(searchQuery.toLowerCase())
     
     return matchesFilter && matchesSearch
   })
@@ -163,6 +192,104 @@ export default function AnalysisHistoryPage({ onViewAnalysis }: AnalysisHistoryP
 
   const handleCloseModal = () => {
     setSelectedAnalysis(null)
+  }
+
+  // Check PDF export status for all analyses
+  const checkPDFExportStatuses = async (analyses: AnalysisRecord[]) => {
+    if (!user?.id) return
+
+    const statusChecks = analyses.map(async (analysis) => {
+      try {
+        const result = await checkPDFExportExists(user.id, analysis.id)
+        return {
+          analysisId: analysis.id,
+          exported: result.success && (result.exists || false)
+        }
+      } catch (error) {
+        console.error(`Failed to check PDF export status for ${analysis.id}:`, error)
+        return {
+          analysisId: analysis.id,
+          exported: false
+        }
+      }
+    })
+
+    const statuses = await Promise.all(statusChecks)
+    const statusMap: PDFExportStatus = {}
+    
+    statuses.forEach(({ analysisId, exported }) => {
+      statusMap[analysisId] = { exported, loading: false }
+    })
+
+    setPdfExportStatus(statusMap)
+  }
+
+  // Handle PDF export
+  const handleExportPDF = async (analysis: AnalysisRecord, event: React.MouseEvent) => {
+    event.stopPropagation() // Prevent opening modal
+    
+    if (!user?.id) return
+
+    // Set loading state
+    setPdfExportStatus(prev => ({
+      ...prev,
+      [analysis.id]: { ...prev[analysis.id], loading: true }
+    }))
+
+    try {
+      const response = await fetch('/api/export-pdf', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          analysisId: analysis.id
+        })
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to export PDF')
+      }
+
+      // Update status to exported
+      setPdfExportStatus(prev => ({
+        ...prev,
+        [analysis.id]: { exported: true, loading: false }
+      }))
+
+      // Show success message and trigger PDF generation
+      if (result.alreadyExported) {
+        console.log('PDF was already exported, generating download...')
+      } else {
+        console.log(`PDF export successful! ${result.creditsCharged} credits charged.`)
+      }
+
+      // Generate and download the actual PDF file
+      const pdfData = convertToPDFData({
+        crack_type: analysis.crack_type,
+        crack_cause: analysis.crack_cause,
+        crack_width: analysis.crack_width,
+        crack_length: analysis.crack_length,
+        repair_steps: analysis.repair_steps,
+        risk_level: analysis.risk_level,
+        processed_images: []
+      }, [])
+
+      generatePDFReport(pdfData)
+      
+    } catch (error) {
+      console.error('PDF export failed:', error)
+      // Reset loading state on error
+      setPdfExportStatus(prev => ({
+        ...prev,
+        [analysis.id]: { ...prev[analysis.id], loading: false }
+      }))
+      
+      // Show error message
+      alert(error instanceof Error ? error.message : 'Failed to export PDF')
+    }
   }
 
 
@@ -260,9 +387,9 @@ export default function AnalysisHistoryPage({ onViewAnalysis }: AnalysisHistoryP
               <div className="flex space-x-1 bg-white rounded-lg p-1 border border-gray-200 w-fit">
                 {[
                   { key: 'all', label: 'All', count: analyses.length },
-                  { key: 'high', label: 'High', count: analyses.filter(a => a.crack_severity === 'high').length },
-                  { key: 'moderate', label: 'Moderate', count: analyses.filter(a => a.crack_severity === 'moderate').length },
-                  { key: 'low', label: 'Low', count: analyses.filter(a => a.crack_severity === 'low').length }
+                  { key: 'high', label: 'High', count: analyses.filter(a => a.risk_level === 'high').length },
+                  { key: 'moderate', label: 'Moderate', count: analyses.filter(a => a.risk_level === 'moderate').length },
+                  { key: 'low', label: 'Low', count: analyses.filter(a => a.risk_level === 'low').length }
                 ].map(({ key, label, count }) => (
                   <button
                     key={key}
@@ -301,228 +428,210 @@ export default function AnalysisHistoryPage({ onViewAnalysis }: AnalysisHistoryP
                 </button>
               </div>
             ) : (
-              <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-                {filteredAnalyses.map((analysis) => (
-                <div
-                  key={analysis.id}
-                  className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-pointer"
-                  onClick={() => handleViewAnalysis(analysis)}
-                >
-                  {/* Header */}
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center space-x-2">
-                      <div className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getSeverityColor(analysis.crack_severity)}`}>
-                        {getSeverityIcon(analysis.crack_severity)}
-                        <span className="ml-1 capitalize">{analysis.crack_severity}</span>
+              <div className="grid gap-8 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                {filteredAnalyses.map((analysis) => {
+                  const exportStatus = pdfExportStatus[analysis.id]
+                  const creditCost = getCreditCost(analysis.model_used as keyof typeof import('@/lib/constants').CREDIT_COSTS)
+                  
+                  return (
+                    <div
+                      key={analysis.id}
+                      className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer group"
+                      onClick={() => handleViewAnalysis(analysis)}
+                    >
+                      {/* Image Section - First like ExampleCard */}
+                      {analysis.image_urls && analysis.image_urls.length > 0 && (
+                        <div className="relative aspect-[4/3] bg-gray-50">
+                          <Image
+                            src={analysis.image_urls[0]}
+                            alt={`${analysis.crack_type || 'Crack'} analysis`}
+                            fill
+                            className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500"
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                          />
+                        </div>
+                      )}
+
+                      {/* Tags Section - Second like ExampleCard */}
+                      <div className="p-4 pb-3">
+                        <div className="flex items-center gap-2 mb-4">
+                          {/* Severity Tag */}
+                          <div className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium border ${getSeverityColor(analysis.risk_level)}`}>
+                            {getSeverityIcon(analysis.risk_level)}
+                            <span className="ml-1 uppercase tracking-wide">{analysis.risk_level}</span>
+                          </div>
+                          
+                          {/* Dimensions Tags */}
+                          <div className="flex items-center gap-2">
+                            {analysis.crack_width && (
+                              <div className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-700 border">
+                                W: {analysis.crack_width}
+                              </div>
+                            )}
+                            {analysis.crack_length && (
+                              <div className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-700 border">
+                                L: {analysis.crack_length}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Content Section - Third like ExampleCard */}
+                      <div className="px-4 pb-4">
+                        {/* Title */}
+                        <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-1">
+                          {analysis.crack_type || 'Crack Analysis'}
+                        </h3>
+                        
+                        {/* Description */}
+                        <p className="text-gray-600 text-sm line-clamp-2 mb-4">
+                          {analysis.crack_cause || 'Comprehensive crack analysis with detailed findings and recommendations'}
+                        </p>
+
+                        {/* Date */}
+                        <div className="flex items-center text-xs text-gray-500 mb-4">
+                          <Calendar className="w-3 h-3 mr-1" />
+                          {formatDate(analysis.created_at)}
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="space-y-2">
+                          {/* View Details Button */}
+                          <button 
+                            className="w-full bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg py-3 text-gray-900 font-medium text-sm transition-colors group-hover:bg-gray-100"
+                            onClick={() => handleViewAnalysis(analysis)}
+                          >
+                            View Analysis Details
+                          </button>
+                          
+                          {/* Export PDF Button */}
+                          <button
+                            onClick={(e) => handleExportPDF(analysis, e)}
+                            disabled={exportStatus?.loading}
+                            className={`w-full rounded-lg py-3 text-sm font-medium transition-colors ${
+                              exportStatus?.exported
+                                ? 'bg-green-50 text-green-700 border border-green-200 cursor-default'
+                                : exportStatus?.loading
+                                ? 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed'
+                                : 'bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700'
+                            }`}
+                          >
+                            {exportStatus?.loading ? (
+                              <div className="flex items-center justify-center">
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400 mr-2"></div>
+                                Exporting PDF...
+                              </div>
+                            ) : exportStatus?.exported ? (
+                              <div className="flex items-center justify-center">
+                                <CheckCircle className="w-4 h-4 mr-2" />
+                                PDF Downloaded
+                              </div>
+                            ) : (
+                              <div className="flex items-center justify-center">
+                                <Download className="w-4 h-4 mr-2" />
+                                Export PDF ({creditCost} credits)
+                              </div>
+                            )}
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-
-                  {/* Images */}
-                  {analysis.image_urls && analysis.image_urls.length > 0 && (
-                    <div className="mb-4">
-                      <div className="grid grid-cols-1 gap-2">
-                        {analysis.image_urls.slice(0, 1).map((url, index) => (
-                          <div key={index} className="relative aspect-[4/3] bg-gray-100 rounded-lg overflow-hidden">
-                            <Image
-                              src={url}
-                              alt={`Analysis image ${index + 1}`}
-                              fill
-                              className="object-cover w-full h-full"
-                              sizes="(max-width: 768px) 100vw, 50vw"
-                            />
-                          </div>
-                        ))}
-                        {analysis.image_urls.length > 1 && (
-                          <div className="flex items-center justify-center text-sm text-gray-500 bg-gray-50 rounded-lg py-2">
-                            <span>+{analysis.image_urls.length - 1} more image{analysis.image_urls.length > 2 ? 's' : ''}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Analysis Summary */}
-                  <div className="mb-4">
-                    <h3 className="font-medium text-gray-900 mb-2 line-clamp-2">
-                      {analysis.crack_type ? `${analysis.crack_type} crack` : 'Crack Analysis'}
-                    </h3>
-                    <p className="text-sm text-gray-600 line-clamp-3">
-                      {analysis.personalized_analysis || analysis.user_description || 'No description available'}
-                    </p>
-                  </div>
-
-                  {/* Metadata */}
-                  <div className="flex items-center justify-between text-xs text-gray-500">
-                    <div className="flex items-center">
-                      <Calendar className="w-3 h-3 mr-1" />
-                      {formatDate(analysis.created_at)}
-                    </div>
-                  </div>
-
-                  {/* Action Button */}
-                  <div className="mt-4 pt-4 border-t border-gray-100">
-                    <button className="w-full flex items-center justify-center text-sm font-medium text-gray-900 hover:text-gray-700 transition-colors">
-                      <Eye className="w-4 h-4 mr-2" />
-                      View Details
-                    </button>
-                  </div>
-                </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </>
         )}
 
-        {/* Analysis Detail Modal */}
+        {/* Analysis Detail Modal - ExamplesSection Style */}
         {selectedAnalysis && (
           <div 
-            className="fixed inset-0 bg-gray-50/80 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
             onClick={handleCloseModal}
           >
             <div 
-              className="bg-white/95 backdrop-blur-md rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-200/50"
+              className="bg-white rounded-lg max-w-6xl w-full h-[85vh] overflow-hidden shadow-2xl border border-gray-200 relative"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="p-6">
-                {/* Modal Header */}
-                <div className="flex items-center justify-between mb-6">
-                  <div>
-                    <h2 className="text-2xl font-bold text-gray-900">Analysis Details</h2>
-                    <p className="text-gray-600">{formatDate(selectedAnalysis.created_at)}</p>
-                  </div>
-                  <button
-                    onClick={handleCloseModal}
-                    className="text-gray-400 hover:text-gray-600 transition-colors"
-                  >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
+              {/* Close button */}
+              <button
+                onClick={handleCloseModal}
+                className="absolute top-4 right-4 z-10 text-gray-400 hover:text-gray-600 transition-colors bg-white rounded-full p-1 shadow-sm"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
 
-                {/* Analysis Overview */}
-                <div className="grid md:grid-cols-2 gap-6 mb-6">
-                  {/* Images */}
-                  <div>
-                    <h3 className="font-medium text-gray-900 mb-3">Images</h3>
-                    <div className="grid grid-cols-2 gap-3">
-                      {selectedAnalysis.image_urls.map((url, index) => (
-                        <div key={index} className="relative aspect-square bg-gray-100 rounded-lg overflow-hidden">
-                          <Image
-                            src={url}
-                            alt={`Analysis image ${index + 1}`}
-                            fill
-                            className="object-cover w-full h-full"
-                            sizes="(max-width: 768px) 50vw, 25vw"
-                          />
+              {/* Left Right Split Layout */}
+              <div className="flex flex-col lg:flex-row h-full">
+                {/* Left Side - Root Cause Analysis */}
+                <div className="w-full lg:w-1/2 border-b lg:border-b-0 lg:border-r border-gray-200">
+                  <div className="p-6 h-full flex flex-col">
+                    <h2 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-200 flex-shrink-0">
+                      Root Cause Analysis
+                    </h2>
+                    <div className="flex-1 overflow-y-auto pr-2">
+                      {selectedAnalysis.crack_cause ? (
+                        <div className="space-y-4">
+                          {formatCrackCause(selectedAnalysis.crack_cause).map((section, index) => (
+                            <div key={index} className="space-y-2">
+                              {section.header && (
+                                <h3 className="text-sm font-semibold text-gray-900 bg-gray-50 px-3 py-2 rounded">
+                                  {section.header}
+                                </h3>
+                              )}
+                              <div className="prose prose-sm max-w-none">
+                                <p className="text-gray-700 leading-relaxed text-sm whitespace-pre-line">
+                                  {section.content}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Analysis Summary */}
-                  <div>
-                    <h3 className="font-medium text-gray-900 mb-3">Analysis Summary</h3>
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">Severity:</span>
-                        <div className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getSeverityColor(selectedAnalysis.crack_severity)}`}>
-                          {getSeverityIcon(selectedAnalysis.crack_severity)}
-                          <span className="ml-1 capitalize">{selectedAnalysis.crack_severity}</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">Type:</span>
-                        <span className="text-sm font-medium text-gray-900 capitalize">
-                          {selectedAnalysis.crack_type || 'Unknown'}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">Category:</span>
-                        <span className="text-sm font-medium text-gray-900 capitalize">
-                          {selectedAnalysis.crack_cause_category || 'Other'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Detailed Analysis */}
-                <div className="space-y-6">
-                  {selectedAnalysis.personalized_analysis && (
-                    <div>
-                      <h3 className="font-medium text-gray-900 mb-3">Personalized Analysis</h3>
-                      <p className="text-gray-700 leading-relaxed">{selectedAnalysis.personalized_analysis}</p>
-                    </div>
-                  )}
-
-                  {selectedAnalysis.structural_impact_assessment && (
-                    <div>
-                      <h3 className="font-medium text-gray-900 mb-3">Structural Impact Assessment</h3>
-                      <p className="text-gray-700 leading-relaxed">{selectedAnalysis.structural_impact_assessment}</p>
-                    </div>
-                  )}
-
-                  {selectedAnalysis.immediate_actions_required && selectedAnalysis.immediate_actions_required.length > 0 && (
-                    <div>
-                      <h3 className="font-medium text-gray-900 mb-3">Immediate Actions Required</h3>
-                      <ul className="space-y-2">
-                        {selectedAnalysis.immediate_actions_required.map((action, index) => (
-                          <li key={index} className="flex items-start">
-                            <AlertTriangle className="w-4 h-4 text-red-500 mr-2 mt-0.5 flex-shrink-0" />
-                            <span className="text-gray-700">{action}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {selectedAnalysis.long_term_recommendations && selectedAnalysis.long_term_recommendations.length > 0 && (
-                    <div>
-                      <h3 className="font-medium text-gray-900 mb-3">Long-term Recommendations</h3>
-                      <ul className="space-y-2">
-                        {selectedAnalysis.long_term_recommendations.map((recommendation, index) => (
-                          <li key={index} className="flex items-start">
-                            <CheckCircle className="w-4 h-4 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
-                            <span className="text-gray-700">{recommendation}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {selectedAnalysis.monitoring_requirements && (
-                    <div>
-                      <h3 className="font-medium text-gray-900 mb-3">Monitoring Requirements</h3>
-                      <p className="text-gray-700 leading-relaxed">{selectedAnalysis.monitoring_requirements}</p>
-                    </div>
-                  )}
-
-                  {selectedAnalysis.professional_consultation_needed && (
-                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                      <div className="flex items-start">
-                        <AlertTriangle className="w-5 h-5 text-yellow-600 mr-3 mt-0.5 flex-shrink-0" />
-                        <div>
-                          <h4 className="font-medium text-yellow-800">Professional Consultation Recommended</h4>
-                          <p className="text-yellow-700 text-sm mt-1">
-                            Based on the analysis, we recommend consulting with a structural engineer or qualified professional.
+                      ) : (
+                        <div className="prose prose-sm max-w-none">
+                          <p className="text-gray-700 leading-relaxed text-sm">
+                            No detailed cause analysis available for this crack analysis.
                           </p>
                         </div>
-                      </div>
+                      )}
                     </div>
-                  )}
+                  </div>
                 </div>
 
-                {/* Modal Footer */}
-                <div className="mt-8 pt-6 border-t border-gray-200 flex justify-end space-x-3">
-                  <button
-                    onClick={handleCloseModal}
-                    className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                  >
-                    Close
-                  </button>
-
+                {/* Right Side - Repair Recommendations */}
+                <div className="w-full lg:w-1/2">
+                  <div className="p-6 h-full flex flex-col">
+                    <h2 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-200 flex-shrink-0">
+                      Repair Recommendations
+                    </h2>
+                    <div className="flex-1 overflow-y-auto pr-2">
+                      {selectedAnalysis.repair_steps && selectedAnalysis.repair_steps.length > 0 ? (
+                        <div className="space-y-3">
+                          {selectedAnalysis.repair_steps.map((step, index) => (
+                            <div key={index} className="bg-blue-50 p-4 rounded-lg">
+                              <div className="flex items-start space-x-3">
+                                <span className="flex-shrink-0 w-6 h-6 bg-blue-500 text-white rounded-full text-xs flex items-center justify-center mt-0.5 font-medium">
+                                  {index + 1}
+                                </span>
+                                <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
+                                  {step}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="bg-gray-50 p-4 rounded-lg">
+                          <p className="text-sm text-gray-500 italic">
+                            No specific repair recommendations available for this analysis.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

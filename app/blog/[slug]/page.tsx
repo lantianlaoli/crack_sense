@@ -1,49 +1,108 @@
-'use client'
-
-import { useState, useEffect } from 'react'
-import { useParams } from 'next/navigation'
+import { Metadata } from 'next'
+import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { Calendar, Clock, ArrowLeft, BookOpen, ArrowRight } from 'lucide-react'
+import { Calendar, Clock, ArrowLeft, ArrowRight } from 'lucide-react'
 import Navigation from '@/components/Navigation'
 import Footer from '@/components/Footer'
 import MarkdownRenderer from '@/components/MarkdownRenderer'
 import BlogCard from '@/components/BlogCard'
 import type { Article } from '@/lib/supabase'
 
-export default function BlogPostPage() {
-  const params = useParams()
-  const [article, setArticle] = useState<Article | null>(null)
-  const [relatedArticles, setRelatedArticles] = useState<Article[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    const fetchArticle = async () => {
-      if (!params.slug) return
-      
-      try {
-        setLoading(true)
-        setError(null)
-        
-        const response = await fetch(`/api/articles/${params.slug}`)
-        const data = await response.json()
-        
-        if (data.success) {
-          setArticle(data.article)
-          setRelatedArticles(data.relatedArticles || [])
-        } else {
-          setError(data.error || 'Article not found')
-        }
-      } catch (err) {
-        console.error('Error fetching article:', err)
-        setError('Failed to load article')
-      } finally {
-        setLoading(false)
+// Function to fetch article data
+async function fetchArticle(slug: string): Promise<{ article: Article | null; relatedArticles: Article[] }> {
+  try {
+    const baseUrl = process.env.VERCEL_URL 
+      ? `https://${process.env.VERCEL_URL}` 
+      : 'http://localhost:3000'
+    
+    const response = await fetch(`${baseUrl}/api/articles/${slug}`, {
+      next: { revalidate: 60 } // Revalidate every minute
+    })
+    
+    if (!response.ok) {
+      return { article: null, relatedArticles: [] }
+    }
+    
+    const data = await response.json()
+    
+    if (data.success) {
+      return {
+        article: data.article,
+        relatedArticles: data.relatedArticles || []
       }
     }
+    
+    return { article: null, relatedArticles: [] }
+  } catch (error) {
+    console.error('Error fetching article:', error)
+    return { article: null, relatedArticles: [] }
+  }
+}
 
-    fetchArticle()
-  }, [params.slug])
+// Generate metadata for SEO
+export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+  const { article } = await fetchArticle(params.slug)
+  
+  if (!article) {
+    return {
+      title: 'Article Not Found | CrackSense Blog',
+      description: 'The article you are looking for could not be found.',
+    }
+  }
+
+  const description = article.excerpt || `Read about ${article.title} on CrackSense blog - professional insights into crack analysis and building inspection.`
+  
+  return {
+    title: `${article.title} | CrackSense Blog`,
+    description,
+    keywords: ['crack analysis', 'building inspection', 'structural assessment'],
+    authors: [{ name: article.author_name }],
+    openGraph: {
+      title: article.title,
+      description,
+      type: 'article',
+      publishedTime: article.created_at,
+      modifiedTime: article.updated_at || article.created_at,
+      authors: [article.author_name],
+      url: `https://www.cracksense.online/blog/${article.slug}`,
+      images: [
+        {
+          url: `/og-blog-${article.slug}.jpg`,
+          width: 1200,
+          height: 630,
+          alt: article.title,
+        }
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: article.title,
+      description,
+      images: [`/twitter-blog-${article.slug}.jpg`],
+    },
+    alternates: {
+      canonical: `https://www.cracksense.online/blog/${article.slug}`,
+    },
+  }
+}
+
+// Generate static params for static generation
+export async function generateStaticParams() {
+  // This would need to fetch all article slugs from your database
+  // For now, we'll let Next.js generate them on demand
+  return []
+}
+
+interface BlogPostPageProps {
+  params: { slug: string }
+}
+
+export default async function BlogPostPage({ params }: BlogPostPageProps) {
+  const { article, relatedArticles } = await fetchArticle(params.slug)
+
+  if (!article) {
+    notFound()
+  }
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
@@ -54,70 +113,48 @@ export default function BlogPostPage() {
     })
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-white">
-        <Navigation />
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-32">
-          {/* Back Link */}
-          <div className="mb-8">
-            <div className="h-6 bg-gray-200 rounded w-32 animate-pulse"></div>
-          </div>
-
-          {/* Article Header */}
-          <div className="mb-12">
-            <div className="h-8 bg-gray-200 rounded mb-4 animate-pulse"></div>
-            <div className="h-8 bg-gray-200 rounded w-3/4 mb-6 animate-pulse"></div>
-            <div className="flex items-center gap-6 mb-8">
-              <div className="h-4 bg-gray-200 rounded w-24 animate-pulse"></div>
-              <div className="h-4 bg-gray-200 rounded w-20 animate-pulse"></div>
-            </div>
-          </div>
-
-          {/* Content */}
-          <div className="space-y-4">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="h-4 bg-gray-200 rounded animate-pulse"></div>
-            ))}
-          </div>
-        </div>
-        <Footer />
-      </div>
-    )
-  }
-
-  if (error || !article) {
-    return (
-      <div className="min-h-screen bg-white">
-        <Navigation />
-        <div className="flex items-center justify-center min-h-screen -mt-20">
-        <div className="text-center">
-          <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            {error === 'Article not found' ? 'Article Not Found' : 'Something went wrong'}
-          </h1>
-          <p className="text-gray-600 mb-6">
-            {error === 'Article not found' 
-              ? 'The article you\'re looking for doesn\'t exist or has been removed.'
-              : 'We encountered an error while loading the article. Please try again later.'
-            }
-          </p>
-          <Link
-            href="/blog"
-            className="inline-flex items-center gap-2 bg-gray-900 text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-800 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Blog
-          </Link>
-        </div>
-        </div>
-        <Footer />
-      </div>
-    )
+  // JSON-LD structured data for SEO
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: article.title,
+    description: article.excerpt || `Professional insights about ${article.title}`,
+    author: {
+      '@type': 'Person',
+      name: article.author_name,
+    },
+    publisher: {
+      '@type': 'Organization',
+      name: 'CrackSense',
+      logo: {
+        '@type': 'ImageObject',
+        url: 'https://www.cracksense.online/logo.png',
+      },
+    },
+    datePublished: article.created_at,
+    dateModified: article.updated_at || article.created_at,
+    url: `https://www.cracksense.online/blog/${article.slug}`,
+    image: [`https://www.cracksense.online/og-blog-${article.slug}.jpg`],
+    mainEntityOfPage: {
+      '@type': 'WebPage',
+      '@id': `https://www.cracksense.online/blog/${article.slug}`,
+    },
+    keywords: ['crack analysis', 'building inspection', 'structural assessment'],
+    about: {
+      '@type': 'Thing',
+      name: 'Crack Analysis and Building Inspection',
+    },
+    articleSection: 'Building Inspection',
+    inLanguage: 'en-US',
+    wordCount: article.content?.length || 0,
   }
 
   return (
     <div className="min-h-screen bg-white">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <Navigation />
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-32">
         {/* Back Link */}
@@ -167,23 +204,6 @@ export default function BlogPostPage() {
           <MarkdownRenderer content={article.content} />
         </div>
 
-        {/* Author Info */}
-        <div className="bg-gray-50 rounded-lg p-6 mb-16">
-          <div className="flex items-start gap-4">
-            <div className="w-16 h-16 bg-gray-900 rounded-full flex items-center justify-center text-white font-bold text-xl">
-              {article.author_name.charAt(0)}
-            </div>
-            <div className="flex-1">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                {article.author_name}
-              </h3>
-              <p className="text-gray-600 leading-relaxed">
-                Expert in structural analysis and crack assessment, providing professional insights 
-                on building safety and maintenance through comprehensive crack analysis.
-              </p>
-            </div>
-          </div>
-        </div>
 
         {/* Related Articles */}
         {relatedArticles.length > 0 && (

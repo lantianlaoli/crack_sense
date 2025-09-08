@@ -9,18 +9,19 @@ export async function GET() {
       .from('crack_analyses')
       .select(`
         id,
-        user_description,
-        severity,
         crack_type,
+        crack_width,
+        crack_length,
         image_urls,
-        ai_analysis,
-        personalized_analysis,
+        processed_image_url,
+        risk_level,
         created_at,
-        crack_cause
+        crack_cause,
+        repair_steps
       `)
       .not('image_urls', 'eq', '[]')
       .not('crack_type', 'is', null)
-      .not('personalized_analysis', 'is', null)
+      .not('crack_cause', 'is', null)
       .order('created_at', { ascending: false })
       .limit(6)
 
@@ -29,25 +30,20 @@ export async function GET() {
       return NextResponse.json({ error: 'Failed to fetch examples' }, { status: 500 })
     }
 
+    console.log('Raw analysis data:', analyses?.length, 'records')
+    if (analyses && analyses.length > 0) {
+      console.log('First record repair_steps:', analyses[0].repair_steps)
+    }
+
     // Transform data to match expected frontend format
     const featuredExamples = analyses?.map(analysis => {
-      // Extract a summary from personalized_analysis (first 200 chars)
-      let analysisSummary = ''
-      if (analysis.personalized_analysis) {
-        const cleanText = analysis.personalized_analysis
-          .replace(/\d+\)\s+[A-Z\s]+:/g, '') // Remove section headers like "1) VISUAL ASSESSMENT:"
-          .replace(/\n+/g, ' ') // Replace newlines with spaces
-          .trim()
-        analysisSummary = cleanText.substring(0, 200) + (cleanText.length > 200 ? '...' : '')
-      }
-
-      // Create a descriptive title from crack_type or user_description
-      let title = analysis.crack_type || analysis.user_description || 'Crack Analysis'
+      // Create a descriptive title from crack_type
+      let title = analysis.crack_type || 'Crack Analysis'
       if (title.length > 60) {
         title = title.substring(0, 60) + '...'
       }
 
-      // Create description from crack cause or analysis
+      // Create description from crack cause (for card preview only)
       let description = ''
       if (analysis.crack_cause) {
         const cleanCause = analysis.crack_cause
@@ -55,66 +51,30 @@ export async function GET() {
           .replace(/\n+/g, ' ')
           .trim()
         description = cleanCause.substring(0, 120) + (cleanCause.length > 120 ? '...' : '')
-      } else {
-        description = analysisSummary.substring(0, 120) + (analysisSummary.length > 120 ? '...' : '')
       }
 
-      // Prioritize KIE rendered images over original images
+      // Prioritize processed images over original images
       let imageUrl = '/crack_example.jpg' // Default fallback
       
-      // Check for KIE processed images first
-      try {
-        let aiAnalysisData = null
-        
-        // Handle both string and object formats for ai_analysis
-        if (analysis.ai_analysis) {
-          if (typeof analysis.ai_analysis === 'string') {
-            // Attempt to clean malformed JSON
-            let cleanedJson = analysis.ai_analysis.trim()
-            // Remove any trailing non-JSON content
-            const lastBraceIndex = cleanedJson.lastIndexOf('}')
-            if (lastBraceIndex !== -1 && lastBraceIndex < cleanedJson.length - 1) {
-              cleanedJson = cleanedJson.substring(0, lastBraceIndex + 1)
-            }
-            
-            try {
-              aiAnalysisData = JSON.parse(cleanedJson)
-            } catch (parseError) {
-              console.warn(`JSON parse error for analysis ${analysis.id}:`, parseError, 'Raw data length:', analysis.ai_analysis.length)
-              // Skip this analysis if JSON is malformed
-              aiAnalysisData = null
-            }
-          } else {
-            aiAnalysisData = analysis.ai_analysis
-          }
-        }
-        
-        if (aiAnalysisData && 
-            aiAnalysisData.processed_images && 
-            Array.isArray(aiAnalysisData.processed_images) && 
-            aiAnalysisData.processed_images.length > 0) {
-          imageUrl = aiAnalysisData.processed_images[0]
-        } 
-        // Fall back to original images
-        else if (Array.isArray(analysis.image_urls) && analysis.image_urls.length > 0) {
-          imageUrl = analysis.image_urls[0]
-        }
-      } catch (error) {
-        console.error(`Error processing ai_analysis for analysis ${analysis.id}:`, error)
-        // Fall back to original images if parsing fails
-        if (Array.isArray(analysis.image_urls) && analysis.image_urls.length > 0) {
-          imageUrl = analysis.image_urls[0]
-        }
+      // Use processed image first, then fall back to original images
+      if (analysis.processed_image_url) {
+        imageUrl = analysis.processed_image_url
+      } else if (Array.isArray(analysis.image_urls) && analysis.image_urls.length > 0) {
+        imageUrl = analysis.image_urls[0]
       }
 
       return {
         id: analysis.id,
         title,
         description,
-        severity: analysis.severity as 'low' | 'moderate' | 'high',
+        severity: analysis.risk_level as 'low' | 'moderate' | 'high',
         crack_type: analysis.crack_type || 'Unknown Type',
+        crack_width: analysis.crack_width || undefined,
+        crack_length: analysis.crack_length || undefined,
         image_url: imageUrl,
-        analysis_summary: analysisSummary,
+        analysis_summary: description,
+        crack_cause: analysis.crack_cause || '',
+        repair_steps: analysis.repair_steps || [],
         created_at: analysis.created_at
       }
     }) || []

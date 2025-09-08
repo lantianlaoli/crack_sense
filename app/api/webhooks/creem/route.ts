@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { addCredits } from '@/lib/credits'
+import { addCreditsWithHistory } from '@/lib/credits'
 import { getCreditsFromProductId } from '@/lib/constants'
 
 export async function POST(request: NextRequest) {
@@ -57,8 +57,13 @@ export async function POST(request: NextRequest) {
 
         console.log(`💳 Found package: ${packageInfo.packageName} with ${packageInfo.credits} credits`)
 
-        // Add credits to user account
-        const result = await addCredits(userId, packageInfo.credits, checkoutId)
+        // Add credits to user account with history tracking
+        const result = await addCreditsWithHistory(
+          userId, 
+          packageInfo.credits, 
+          `Purchase: ${packageInfo.packageName} package (${packageInfo.credits} credits)`,
+          checkoutId
+        )
 
         if (!result.success) {
           console.error('❌ Failed to add credits:', result.error)

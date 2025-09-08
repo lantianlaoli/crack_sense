@@ -7,7 +7,7 @@ interface Analysis {
   id: string
   created_at: string
   image_urls: string[]
-  user_description: string
+  crack_cause: string
   severity: 'low' | 'moderate' | 'high'
   ai_analysis: {
     confidence: number
@@ -117,7 +117,7 @@ export default function NotionTable({ analyses, onViewDetails }: NotionTableProp
                 </td>
                 <td className="px-6 py-4">
                   <div className="text-sm text-gray-900 max-w-xs truncate">
-                    {analysis.user_description || 'No description'}
+                    {analysis.crack_cause || 'No description'}
                   </div>
                 </td>
                 <td className="px-6 py-4">

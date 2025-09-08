@@ -23,8 +23,14 @@ export async function GET(
       )
     }
 
-    // Extract processed images from ai_analysis field
-    const processed_images = analysis.ai_analysis?.processed_images || []
+    // Get processed images from the correct column
+    const processed_images = analysis.processed_image_url ? [analysis.processed_image_url] : []
+
+    // Debug logging
+    console.log('Analysis API Debug:')
+    console.log('- Analysis ID:', analysis.id)
+    console.log('- processed_image_url field:', analysis.processed_image_url)
+    console.log('- processed_images extracted:', processed_images)
 
     // Return the analysis with processed images
     return NextResponse.json({
