@@ -1,8 +1,88 @@
 import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 
+// Local fallback examples for environments without Supabase/network
+function getFallbackExamples() {
+  const now = new Date().toISOString()
+  return [
+    {
+      id: 'fallback-1',
+      title: 'Diagonal tension crack near window corner',
+      description:
+        'Hairline diagonal crack at 45° from window corner. Likely due to localized tensile stress and minor settlement.',
+      severity: 'low' as const,
+      crack_type: 'Diagonal tension crack (45° orientation)',
+      crack_width: '< 0.3 mm',
+      crack_length: '15–25 cm',
+      image_url: '/crack_example.jpg',
+      analysis_summary:
+        'Minor diagonal cracking consistent with stress concentration near openings. Monitor and seal to prevent moisture ingress.',
+      crack_cause:
+        '1) VISUAL ASSESSMENT: Hairline diagonal crack extending from window corner at ~45°.\n2) PROBABLE CAUSE: Localized tensile stress and minor differential settlement.\n3) RISK: Low; primarily aesthetic with limited structural impact.\n4) RECOMMENDATION: Seal with acrylic filler; monitor for widening.',
+      repair_steps: [
+        'Clean and dry the area; remove loose material.',
+        'Apply acrylic crack filler suitable for hairline cracks.',
+        'Feather and sand; prime and repaint to finish.',
+        'Monitor for changes over 3–6 months.',
+      ],
+      created_at: now,
+    },
+    {
+      id: 'fallback-2',
+      title: 'Vertical shrinkage crack on plaster wall',
+      description:
+        'Narrow vertical crack typical of drying shrinkage in plaster; limited structural significance.',
+      severity: 'low' as const,
+      crack_type: 'Vertical shrinkage crack',
+      crack_width: '≈ 0.5 mm',
+      crack_length: '40–60 cm',
+      image_url: '/crack_example.jpg',
+      analysis_summary:
+        'Drying/shrinkage-related cracking. Address with flexible filler and repaint; monitor for recurrence.',
+      crack_cause:
+        '1) VISUAL ASSESSMENT: Vertical fine crack without displacement.\n2) PROBABLE CAUSE: Material shrinkage from curing/drying.\n3) RISK: Low; mainly cosmetic.\n4) RECOMMENDATION: Flexible filler and repaint.',
+      repair_steps: [
+        'Open up the crack slightly to form a V-groove.',
+        'Fill with flexible acrylic/latex compound; allow to cure.',
+        'Sand smooth; apply primer and finish coat.',
+      ],
+      created_at: now,
+    },
+    {
+      id: 'fallback-3',
+      title: 'Horizontal crack along mortar joint',
+      description:
+        'Crack following mortar joint indicates thermal movement or minor support issues; inspect if widening.',
+      severity: 'moderate' as const,
+      crack_type: 'Horizontal mortar joint crack',
+      crack_width: '0.5–1.0 mm',
+      crack_length: '80+ cm',
+      image_url: '/crack_example.jpg',
+      analysis_summary:
+        'Movement along masonry joint. Repoint with compatible mortar; assess support/anchorage if progression noted.',
+      crack_cause:
+        '1) VISUAL ASSESSMENT: Crack tracking along mortar bed joint.\n2) PROBABLE CAUSE: Thermal movement and minor differential support.\n3) RISK: Moderate if active movement persists.\n4) RECOMMENDATION: Rake and repoint with compatible mortar; monitor.',
+      repair_steps: [
+        'Rake out deteriorated mortar to appropriate depth.',
+        'Repoint using compatible mortar; ensure proper curing.',
+        'Install/verify movement joints where appropriate.',
+        'Monitor for recurrence or widening (>2 mm).',
+      ],
+      created_at: now,
+    },
+  ]
+}
+
 export async function GET() {
   try {
+    // If Supabase is not configured, return safe fallback data
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    if (!supabaseUrl || !supabaseAnon) {
+      console.warn('Examples API: Supabase env not configured, returning fallback examples')
+      return NextResponse.json({ examples: getFallbackExamples() })
+    }
+
     // Query featured examples from crack_analyses table
     // Select analyses with images and good data for display
     const { data: analyses, error } = await supabase
@@ -27,7 +107,8 @@ export async function GET() {
 
     if (error) {
       console.error('Error fetching examples:', error)
-      return NextResponse.json({ error: 'Failed to fetch examples' }, { status: 500 })
+      // Graceful fallback when DB query fails (e.g., no network)
+      return NextResponse.json({ examples: getFallbackExamples() })
     }
 
     console.log('Raw analysis data:', analyses?.length, 'records')
@@ -82,6 +163,7 @@ export async function GET() {
     return NextResponse.json({ examples: featuredExamples })
   } catch (error) {
     console.error('Unexpected error fetching examples:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    // Final safety net: return fallback data instead of 500 to avoid UI errors
+    return NextResponse.json({ examples: getFallbackExamples() })
   }
 }

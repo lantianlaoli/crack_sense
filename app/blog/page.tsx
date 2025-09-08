@@ -40,10 +40,16 @@ export const metadata: Metadata = {
 async function fetchArticles(): Promise<Article[]> {
   try {
     console.log('[Blog] Fetching articles directly from Supabase')
+    // Skip querying when Supabase env is not configured (local/dev without DB)
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      console.warn('[Blog] Supabase env not configured, returning empty articles list')
+      return []
+    }
     
     const { data: articles, error } = await supabase
       .from('articles')
       .select('*')
+      .eq('published', true)
       .order('created_at', { ascending: false })
       .limit(50)
     

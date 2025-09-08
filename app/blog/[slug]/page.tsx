@@ -7,32 +7,41 @@ import Footer from '@/components/Footer'
 import MarkdownRenderer from '@/components/MarkdownRenderer'
 import BlogCard from '@/components/BlogCard'
 import type { Article } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase'
 
-// Function to fetch article data
+// Function to fetch article data (query Supabase directly in server component)
 async function fetchArticle(slug: string): Promise<{ article: Article | null; relatedArticles: Article[] }> {
   try {
-    const baseUrl = process.env.VERCEL_URL 
-      ? `https://${process.env.VERCEL_URL}` 
-      : 'http://localhost:3000'
-    
-    const response = await fetch(`${baseUrl}/api/articles/${slug}`, {
-      next: { revalidate: 60 } // Revalidate every minute
-    })
-    
-    if (!response.ok) {
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      console.warn('[Blog slug] Supabase env not configured; no article can be fetched')
       return { article: null, relatedArticles: [] }
     }
-    
-    const data = await response.json()
-    
-    if (data.success) {
-      return {
-        article: data.article,
-        relatedArticles: data.relatedArticles || []
-      }
+
+    const { data: article, error } = await supabase
+      .from('articles')
+      .select('*')
+      .eq('slug', slug)
+      .eq('published', true)
+      .single()
+
+    if (error || !article) {
+      if (error) console.error('[Blog slug] Supabase error:', error)
+      return { article: null, relatedArticles: [] }
     }
-    
-    return { article: null, relatedArticles: [] }
+
+    const { data: related, error: relatedError } = await supabase
+      .from('articles')
+      .select('id, title, slug, excerpt, cover_image, created_at, reading_time')
+      .eq('published', true)
+      .neq('id', article.id)
+      .order('created_at', { ascending: false })
+      .limit(3)
+
+    if (relatedError) {
+      console.warn('[Blog slug] Related articles fetch warning:', relatedError)
+    }
+
+    return { article, relatedArticles: related || [] }
   } catch (error) {
     console.error('Error fetching article:', error)
     return { article: null, relatedArticles: [] }
