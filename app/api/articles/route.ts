@@ -10,7 +10,7 @@ export async function GET(request: Request) {
 
     let query = supabase
       .from('articles')
-      .select('*')
+      .select('*', { count: 'exact' })
       .order('created_at', { ascending: false })
 
     if (search) {

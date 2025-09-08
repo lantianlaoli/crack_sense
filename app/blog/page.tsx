@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     url: 'https://www.cracksense.online/blog',
     images: [
       {
-        url: '/og-blog.jpg',
+        url: '/og-image.jpg',
         width: 1200,
         height: 630,
         alt: 'CrackSense Blog - Expert Insights',
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Expert Crack Analysis Insights | CrackSense Blog',
     description: 'Comprehensive guides and expert insights on structural crack analysis.',
-    images: ['/twitter-blog.jpg'],
+    images: ['/twitter-image.jpg'],
   },
   alternates: {
     canonical: 'https://www.cracksense.online/blog',
@@ -49,7 +49,6 @@ async function fetchArticles(): Promise<Article[]> {
     const { data: articles, error } = await supabase
       .from('articles')
       .select('*')
-      .eq('published', true)
       .order('created_at', { ascending: false })
       .limit(50)
     

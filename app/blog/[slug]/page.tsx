@@ -21,7 +21,6 @@ async function fetchArticle(slug: string): Promise<{ article: Article | null; re
       .from('articles')
       .select('*')
       .eq('slug', slug)
-      .eq('published', true)
       .single()
 
     if (error || !article) {
@@ -32,7 +31,6 @@ async function fetchArticle(slug: string): Promise<{ article: Article | null; re
     const { data: related, error: relatedError } = await supabase
       .from('articles')
       .select('*')
-      .eq('published', true)
       .neq('id', article.id)
       .order('created_at', { ascending: false })
       .limit(3)
@@ -77,7 +75,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       url: `https://www.cracksense.online/blog/${article.slug}`,
       images: [
         {
-          url: `/og-blog-${article.slug}.jpg`,
+          url: '/og-image.jpg',
           width: 1200,
           height: 630,
           alt: article.title,
@@ -88,7 +86,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       card: 'summary_large_image',
       title: article.title,
       description,
-      images: [`/twitter-blog-${article.slug}.jpg`],
+      images: ['/twitter-image.jpg'],
     },
     alternates: {
       canonical: `https://www.cracksense.online/blog/${article.slug}`,
