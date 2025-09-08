@@ -18,7 +18,7 @@ interface Analysis {
   ai_analysis: {
     confidence: number
     crackCount: number
-    findings: any[]
+    findings: Record<string, any>[]
     recommendations: string[]
     analysis: string
   }
@@ -29,8 +29,8 @@ export default function Dashboard() {
   const { user } = useUser()
   const [credits, setCredits] = useState<number | null>(null)
   const [loadingCredits, setLoadingCredits] = useState(true)
-  const [analyses, setAnalyses] = useState<Analysis[]>([])
-  const [loadingAnalyses, setLoadingAnalyses] = useState(false)
+  const [, setAnalyses] = useState<Analysis[]>([])
+  const [, setLoadingAnalyses] = useState(false)
   const [selectedModel, setSelectedModel] = useState<string>('google/gemini-2.0-flash-001')
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [currentPage, setCurrentPage] = useState('analysis')

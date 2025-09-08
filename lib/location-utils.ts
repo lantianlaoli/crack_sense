@@ -1,5 +1,5 @@
 /**
- * 位置工具函数 - 处理邮编、城市和地理位置相关操作
+ * Location utility functions - handle zip codes, cities and geolocation operations
  */
 
 import { supabase } from './supabase'
@@ -26,7 +26,7 @@ export interface ZipCodeInfo {
 // supabase instance imported above
 
 /**
- * 根据邮编查找城市信息
+ * Find city information by zip code
  */
 export async function getCityFromZipCode(zipCode: string): Promise<City | null> {
   const { data, error } = await supabase
@@ -37,7 +37,7 @@ export async function getCityFromZipCode(zipCode: string): Promise<City | null> 
 
   if (error || !data || data.length === 0) {
     console.log('No city found in database for zipCode:', zipCode, 'Error:', error)
-    // 如果数据库中没有找到，尝试从外部API获取
+    // If not found in database, try to fetch from external API
     return await fetchCityFromExternalAPI(zipCode)
   }
 
@@ -46,13 +46,13 @@ export async function getCityFromZipCode(zipCode: string): Promise<City | null> 
 }
 
 /**
- * 根据坐标获取最近的邮编和城市
+ * Get nearest zip code and city by coordinates
  */
 export async function getZipCodeFromCoordinates(
   latitude: number, 
   longitude: number
 ): Promise<ZipCodeInfo | null> {
-  // 使用PostGIS函数查找最近的城市
+  // Use PostGIS function to find nearest city
   const { data, error } = await supabase.rpc('find_nearest_city', {
     lat: latitude,
     lng: longitude
@@ -66,7 +66,7 @@ export async function getZipCodeFromCoordinates(
 }
 
 /**
- * 计算两个坐标点之间的距离（英里）
+ * Calculate distance between two coordinate points (in miles)
  */
 export function calculateDistance(
   lat1: number, 
@@ -74,7 +74,7 @@ export function calculateDistance(
   lat2: number, 
   lon2: number
 ): number {
-  const R = 3959 // 地球半径（英里）
+  const R = 3959 // Earth radius (in miles)
   const dLat = toRad(lat2 - lat1)
   const dLon = toRad(lon2 - lon1)
   
@@ -91,11 +91,11 @@ function toRad(value: number): number {
 }
 
 /**
- * 从外部API获取城市信息（备用方案）
+ * Fetch city information from external API (fallback)
  */
 async function fetchCityFromExternalAPI(zipCode: string): Promise<City | null> {
   try {
-    // 使用免费的ZIP Code API
+    // Use free ZIP Code API
     const response = await fetch(`http://api.zippopotam.us/us/${zipCode}`)
     
     if (!response.ok) {
@@ -107,7 +107,7 @@ async function fetchCityFromExternalAPI(zipCode: string): Promise<City | null> {
     if (data && data.places && data.places.length > 0) {
       const place = data.places[0]
       
-      // 保存到数据库以备将来使用
+      // Save to database for future use
       const cityData = {
         city_name: place['place name'],
         state_code: place['state abbreviation'],
@@ -133,14 +133,14 @@ async function fetchCityFromExternalAPI(zipCode: string): Promise<City | null> {
 }
 
 /**
- * 从坐标获取位置信息（备用方案）
+ * Get location information from coordinates (fallback)
  */
 async function fetchLocationFromExternalAPI(
   latitude: number, 
   longitude: number
 ): Promise<ZipCodeInfo | null> {
   try {
-    // 使用Nominatim反向地理编码API
+    // Use Nominatim reverse geocoding API
     const response = await fetch(
       `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`
     )
@@ -157,14 +157,14 @@ async function fetchLocationFromExternalAPI(
       const stateCode = data.address.state
       
       if (zipCode && cityName && stateCode) {
-        // 尝试获取或创建城市记录
+        // Try to get or create city record
         let city = await getCityFromZipCode(zipCode)
         
         if (!city) {
           const cityData = {
             city_name: cityName,
             state_code: stateCode,
-            state_name: stateCode, // 这里可以扩展获取完整州名
+            state_name: stateCode, // This can be extended to get full state name
             zip_codes: [zipCode],
             latitude,
             longitude
@@ -197,23 +197,23 @@ async function fetchLocationFromExternalAPI(
 }
 
 /**
- * 验证美国邮编格式
+ * Validate US zip code format
  */
 export function isValidUSZipCode(zipCode: string): boolean {
-  // 支持5位数字或5位数字-4位数字格式
+  // Support 5-digit or 5-digit-4-digit format
   const zipRegex = /^\d{5}(-\d{4})?$/
   return zipRegex.test(zipCode)
 }
 
 /**
- * 标准化邮编格式（移除连字符后的部分）
+ * Normalize zip code format (remove part after hyphen)
  */
 export function normalizeZipCode(zipCode: string): string {
   return zipCode.split('-')[0]
 }
 
 /**
- * 根据城市名和州代码查找城市
+ * Find city by city name and state code
  */
 export async function getCityByNameAndState(
   cityName: string, 
@@ -234,14 +234,14 @@ export async function getCityByNameAndState(
 }
 
 /**
- * 在指定半径内查找城市
+ * Find cities within specified radius
  */
 export async function getCitiesInRadius(
   latitude: number,
   longitude: number,
   radiusMiles: number
 ): Promise<City[]> {
-  // 使用PostGIS查询指定半径内的城市
+  // Use PostGIS to query cities within specified radius
   const { data, error } = await supabase.rpc('find_cities_in_radius', {
     center_lat: latitude,
     center_lng: longitude,

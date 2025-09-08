@@ -4,13 +4,10 @@ import { useState, useEffect } from 'react'
 import { useUser } from '@clerk/nextjs'
 import { 
   Calendar, 
-  Clock, 
   AlertTriangle, 
   CheckCircle, 
   Info,
-  Eye,
   Download,
-  ExternalLink,
   Image as ImageIcon,
   Zap,
   Crown,
@@ -73,18 +70,6 @@ const getSeverityIcon = (severity: string) => {
   }
 }
 
-const getModelIcon = (model: string) => {
-  if (model.includes('claude')) return <Crown className="w-4 h-4" />
-  if (model.includes('gemini-2.5')) return <Zap className="w-4 h-4" />
-  return <Gauge className="w-4 h-4" />
-}
-
-const getModelName = (model: string) => {
-  if (model.includes('claude')) return 'Claude 4'
-  if (model.includes('gemini-2.5')) return 'Gemini 2.5'
-  if (model.includes('gemini-2.0')) return 'Gemini 2.0'
-  return model
-}
 
 const formatDate = (dateString: string) => {
   const date = new Date(dateString)
@@ -393,7 +378,7 @@ export default function AnalysisHistoryPage({ onViewAnalysis }: AnalysisHistoryP
                 ].map(({ key, label, count }) => (
                   <button
                     key={key}
-                    onClick={() => setFilter(key as any)}
+                    onClick={() => setFilter(key as 'all' | 'high' | 'moderate' | 'low')}
                     className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                       filter === key
                         ? 'bg-gray-900 text-white'

@@ -222,9 +222,7 @@ export async function POST(request: NextRequest) {
           try {
             // Stream chat
             for await (const chunk of streamChat(
-              message,
-              userId,
-              conversationId
+              message
             )) {
               fullResponse += chunk
               

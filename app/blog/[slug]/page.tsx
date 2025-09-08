@@ -40,8 +40,9 @@ async function fetchArticle(slug: string): Promise<{ article: Article | null; re
 }
 
 // Generate metadata for SEO
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
-  const { article } = await fetchArticle(params.slug)
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params
+  const { article } = await fetchArticle(slug)
   
   if (!article) {
     return {
@@ -94,11 +95,12 @@ export async function generateStaticParams() {
 }
 
 interface BlogPostPageProps {
-  params: { slug: string }
+  params: Promise<{ slug: string }>
 }
 
 export default async function BlogPostPage({ params }: BlogPostPageProps) {
-  const { article, relatedArticles } = await fetchArticle(params.slug)
+  const { slug } = await params
+  const { article, relatedArticles } = await fetchArticle(slug)
 
   if (!article) {
     notFound()

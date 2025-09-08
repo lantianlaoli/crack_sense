@@ -22,12 +22,12 @@ export interface RecommendationResult {
 }
 
 /**
- * MVP简化版产品推荐：只在低级别裂痕时推荐材料
+ * MVP simplified product recommendations: only recommend materials for low-level cracks
  */
 export class ProductRecommendationService {
   
   /**
-   * 获取低级别裂痕的DIY修复产品推荐
+   * Get DIY repair product recommendations for low-level cracks
    */
   async getRecommendationsForLowSeverity(
     userId: string,
@@ -35,7 +35,7 @@ export class ProductRecommendationService {
     userQuery?: string
   ): Promise<RecommendationResult> {
     try {
-      // 1. 查询适合低级别的产品
+      // 1. Query products suitable for low-level repairs
       const { data: products, error } = await supabase
         .from('repair_products')
         .select('*')
@@ -52,9 +52,9 @@ export class ProductRecommendationService {
         return { recommendations: [], total: 0 }
       }
 
-      // 2. 构建推荐结果
+      // 2. Build recommendation results
       const recommendations: ProductRecommendation[] = products.map((product, index) => {
-        const baseScore = Math.max(0.9 - (index * 0.1), 0.6) // 递减评分
+        const baseScore = Math.max(0.9 - (index * 0.1), 0.6) // Decreasing score
         const ratingBonus = (product.rating || 4) / 5 * 0.1
         const finalScore = Math.min(baseScore + ratingBonus, 1.0)
 
@@ -73,7 +73,7 @@ export class ProductRecommendationService {
         }
       })
 
-      // 3. 保存推荐记录用于追踪
+      // 3. Save recommendation records for tracking
       await this.saveRecommendations(recommendations, userId, analysisId, userQuery)
 
       return {
@@ -88,7 +88,7 @@ export class ProductRecommendationService {
   }
 
   /**
-   * 基于查询文本搜索产品（聊天功能使用）
+   * Search products based on query text (used by chat feature)
    */
   async searchProductsByQuery(
     query: string,
@@ -96,10 +96,10 @@ export class ProductRecommendationService {
     conversationId?: string
   ): Promise<RecommendationResult> {
     try {
-      // 提取关键词
+      // Extract keywords
       const searchTerms = this.extractSearchKeywords(query)
       
-      // 使用Supabase的文本搜索功能
+      // Use Supabase's text search functionality
       const { data: products, error } = await supabase
         .rpc('search_products_by_text', {
           search_query: searchTerms,
@@ -116,7 +116,7 @@ export class ProductRecommendationService {
         return { recommendations: [], total: 0 }
       }
 
-      // 构建搜索推荐结果
+      // Build search recommendation results
       const recommendations: ProductRecommendation[] = products.map((item: any, index: number) => ({
         product: {
           id: item.id,
@@ -128,10 +128,10 @@ export class ProductRecommendationService {
           image_url: item.image_url
         },
         recommendation_score: Math.max(0.8 - (index * 0.1), 0.5),
-        recommendation_reason: `匹配您的搜索："${query}" - ${item.product_type?.replace('_', ' ')} 产品`
+        recommendation_reason: `Matches your search: "${query}" - ${item.product_type?.replace('_', ' ')} product`
       }))
 
-      // 保存搜索推荐记录
+      // Save search recommendation records
       await this.saveRecommendations(recommendations, userId, null, query)
 
       return {
@@ -146,7 +146,7 @@ export class ProductRecommendationService {
   }
 
   /**
-   * 记录产品点击用于转化追踪
+   * Record product clicks for conversion tracking
    */
   async trackProductClick(recommendationId: string): Promise<void> {
     try {
@@ -160,7 +160,7 @@ export class ProductRecommendationService {
   }
 
   /**
-   * 保存推荐记录到数据库
+   * Save recommendation records to database
    */
   private async saveRecommendations(
     recommendations: ProductRecommendation[],
@@ -190,39 +190,39 @@ export class ProductRecommendationService {
   }
 
   /**
-   * 生成推荐理由
+   * Generate recommendation reason
    */
   private generateRecommendationReason(product: any, rank: number): string {
     const reasons = [
-      `顶级推荐 - 适合低级别裂痕DIY修复`,
-      `高评分产品 - ${product.rating || 4}/5星评价`,
-      `经济实用 - 性价比优秀的修复方案`,
-      `易于使用 - 适合初学者DIY操作`,
-      `备选方案 - 可靠的修复材料选择`
+      `Top recommendation - suitable for low-level crack DIY repair`,
+      `High-rated product - ${product.rating || 4}/5 star rating`,
+      `Economical and practical - excellent value repair solution`,
+      `Easy to use - suitable for beginner DIY operation`,
+      `Alternative option - reliable repair material choice`
     ]
     
     let reason = reasons[rank - 1] || reasons[4]
     
     if (product.rating && product.rating >= 4.5) {
-      reason += ` (${product.rating}星好评)`
+      reason += ` (${product.rating} star reviews)`
     }
     
     return reason
   }
 
   /**
-   * 提取搜索关键词
+   * Extract search keywords
    */
   private extractSearchKeywords(query: string): string {
-    // 移除常见停用词，保留关键词
+    // Remove common stop words, keep keywords
     const stopWords = [
-      '我', '需要', '想要', '买', '购买', '推荐', '什么', '怎么', '如何',
-      '哪个', '哪种', '用', '使用', '修复', '修理', '材料', '产品'
+      'I', 'need', 'want', 'buy', 'purchase', 'recommend', 'what', 'how',
+      'which', 'use', 'repair', 'fix', 'material', 'product'
     ]
 
-    // 裂痕修复相关关键词
+    // Crack repair related keywords
     const importantKeywords = [
-      '裂痕', '裂缝', '缝隙', '修补', '填充', '密封', '胶', '膏', '贴'
+      'crack', 'fissure', 'gap', 'repair', 'fill', 'seal', 'adhesive', 'paste', 'patch'
     ]
 
     const words = query.toLowerCase().split(/\s+/)
