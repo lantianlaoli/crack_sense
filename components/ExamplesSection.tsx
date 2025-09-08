@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Grid, ArrowRight, Loader2 } from 'lucide-react'
 import ExampleCard from './ExampleCard'
+import { formatCrackCause } from '@/lib/format-crack-cause'
 
 interface ExampleData {
   id: string
@@ -20,31 +21,6 @@ interface ExampleData {
   created_at: string
 }
 
-// Helper function to format crack cause analysis
-const formatCrackCause = (crackCause: string) => {
-  if (!crackCause) return []
-  
-  // Split by numbered sections with headers (like "1) VISUAL ASSESSMENT:")
-  const sectionRegex = /(\d+\)\s+[A-Z\s]+:)/g
-  const parts = crackCause.split(sectionRegex).filter(part => part.trim())
-  
-  const formattedSections = []
-  for (let i = 0; i < parts.length; i += 2) {
-    if (parts[i] && parts[i + 1]) {
-      const header = parts[i].trim()
-      const content = parts[i + 1].trim()
-      formattedSections.push({
-        header,
-        content
-      })
-    }
-  }
-  
-  return formattedSections.length > 0 ? formattedSections : [{ 
-    header: '', 
-    content: crackCause.trim() 
-  }]
-}
 
 export default function ExamplesSection() {
   const [selectedExample, setSelectedExample] = useState<ExampleData | null>(null)
